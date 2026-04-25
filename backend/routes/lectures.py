@@ -1,10 +1,11 @@
 import json
 import shutil
 from pathlib import Path
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
-from sqlalchemy.orm import Session, joinedload
-from database import get_db, RECORDINGS_DIR
+
+from database import RECORDINGS_DIR, get_db
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from models import Lecture, Tag
+from sqlalchemy.orm import Session, joinedload
 
 router = APIRouter(prefix="/api/lectures", tags=["lectures"])
 
@@ -32,12 +33,14 @@ async def create_lecture(
 
     # Save tags
     for t in json.loads(tags_json):
-        db.add(Tag(
-            lecture_id=lecture.id,
-            name=t["name"],
-            time=t["time"],
-            char_index=t.get("charIndex"),
-        ))
+        db.add(
+            Tag(
+                lecture_id=lecture.id,
+                name=t["name"],
+                time=t["time"],
+                char_index=t.get("charIndex"),
+            )
+        )
 
     db.commit()
     db.refresh(lecture)
@@ -92,11 +95,16 @@ def _lecture_dict(l: Lecture) -> dict:
         **_lecture_summary(l),
         "notes": l.notes,
         "audio_path": l.audio_path,
-        "tags": [{"id": t.id, "name": t.name, "time": t.time, "charIndex": t.char_index} for t in (l.tags or [])],
+        "tags": [
+            {"id": t.id, "name": t.name, "time": t.time, "charIndex": t.char_index}
+            for t in (l.tags or [])
+        ],
         "transcript": {
             "id": l.transcript.id,
             "content": l.transcript.content,
             "segments": l.transcript.segments,
             "diarize": l.transcript.diarize,
-        } if l.transcript else None,
+        }
+        if l.transcript
+        else None,
     }

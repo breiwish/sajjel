@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Voice Notes server: SPA routing + API + static files."""
 
+import json
 import os
 import re
-import json
-from http.server import HTTPServer, SimpleHTTPRequestHandler
 from datetime import datetime
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RECORDINGS_DIR = os.path.join(BASE_DIR, "recordings")
@@ -17,9 +17,9 @@ session_folders = {}
 
 def slugify(text):
     text = text.strip().lower()
-    text = re.sub(r'[^\w\s-]', '', text)
-    text = re.sub(r'[\s_]+', '-', text)
-    return text[:60] or 'untitled'
+    text = re.sub(r"[^\w\s-]", "", text)
+    text = re.sub(r"[\s_]+", "-", text)
+    return text[:60] or "untitled"
 
 
 def get_session_dir(session_id, title=None):
@@ -43,7 +43,6 @@ def get_session_dir(session_id, title=None):
 
 
 class Handler(SimpleHTTPRequestHandler):
-
     def do_GET(self):
         # ── API routes ──
         if self.path == "/api/recordings":
@@ -69,13 +68,15 @@ class Handler(SimpleHTTPRequestHandler):
                 # Fallback to folder mtime if no createdAt
                 if not created_at:
                     created_at = int(os.path.getmtime(folder_path) * 1000)
-                sessions.append({
-                    "folder": folder,
-                    "title": title or folder,
-                    "hasAudio": has_audio,
-                    "sessionId": session_id,
-                    "createdAt": created_at,
-                })
+                sessions.append(
+                    {
+                        "folder": folder,
+                        "title": title or folder,
+                        "hasAudio": has_audio,
+                        "sessionId": session_id,
+                        "createdAt": created_at,
+                    }
+                )
             sessions.sort(key=lambda s: s.get("createdAt", 0), reverse=True)
             self._respond(200, sessions)
             return
@@ -95,9 +96,12 @@ class Handler(SimpleHTTPRequestHandler):
             return
 
         # ── Static files (recordings audio, onboarding assets, favicons, etc.) ──
-        if (self.path.startswith("/recordings/")
-                or self.path.startswith("/onboarding/")
-                or self.path in ("/favicon.svg", "/favicon.png", "/favicon.ico", "/apple-touch-icon.png")):
+        if (
+            self.path.startswith("/recordings/")
+            or self.path.startswith("/onboarding/")
+            or self.path
+            in ("/favicon.svg", "/favicon.png", "/favicon.ico", "/apple-touch-icon.png")
+        ):
             super().do_GET()
             return
 
@@ -150,6 +154,7 @@ class Handler(SimpleHTTPRequestHandler):
             folder_path = os.path.join(RECORDINGS_DIR, folder)
             if os.path.isdir(folder_path):
                 import shutil
+
                 shutil.rmtree(folder_path)
                 self._respond(200, {"deleted": folder})
             else:

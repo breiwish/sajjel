@@ -1,0 +1,8 @@
+recordings/
+onboarding/
+node_modules/
+dist/
+*.min.js
+favicon.svg
+gif.worker.js
+frontend/

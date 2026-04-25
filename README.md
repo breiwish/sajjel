@@ -2,7 +2,7 @@
 
 Synchronized voice + text note-taking. Record audio while typing notes; every keystroke is timestamped against the audio so you can scrub back to the exact moment any sentence was written.
 
-> *Sajjil* (Arabic: سَجِّلْ) — imperative: **record**.
+> _Sajjil_ (Arabic: سَجِّلْ) — imperative: **record**.
 
 ## Features
 
@@ -40,14 +40,14 @@ No dependencies for the core app. Onboarding screenshot regeneration uses Pillow
 
 ## Keyboard
 
-| Key | Action |
-|-----|--------|
-| `⏺ Record` button or `Space` (when not focused in editor) | Start/stop recording |
-| `Ctrl+M` | Drop pin marker at current audio time |
-| `← / →` | Scrub audio (during playback) |
-| `#word#` in note text | Create a tag at current audio time |
-| Right-click a tag | Expand nudge controls |
-| Click a tag | Jump audio to tag time |
+| Key                                                       | Action                                |
+| --------------------------------------------------------- | ------------------------------------- |
+| `⏺ Record` button or `Space` (when not focused in editor) | Start/stop recording                  |
+| `Ctrl+M`                                                  | Drop pin marker at current audio time |
+| `← / →`                                                   | Scrub audio (during playback)         |
+| `#word#` in note text                                     | Create a tag at current audio time    |
+| Right-click a tag                                         | Expand nudge controls                 |
+| Click a tag                                               | Jump audio to tag time                |
 
 ## Files of interest
 

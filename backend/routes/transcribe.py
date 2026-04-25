@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from sqlalchemy.orm import Session
-from database import get_db, RECORDINGS_DIR
+from database import RECORDINGS_DIR, get_db
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from models import Lecture, Transcript
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/lectures", tags=["transcription"])
 
@@ -13,12 +13,14 @@ def get_transcriber():
     global _transcriber
     if _transcriber is None:
         from transcriber import Transcriber
+
         _transcriber = Transcriber()
     return _transcriber
 
 
 def _run_transcription(lecture_id: int, audio_path: str, diarize: bool):
     from database import SessionLocal
+
     db = SessionLocal()
     try:
         transcriber = get_transcriber()
@@ -80,5 +82,7 @@ def get_transcript(lecture_id: int, db: Session = Depends(get_db)):
             "content": transcript.content,
             "segments": transcript.segments,
             "diarize": transcript.diarize,
-        } if transcript else None,
+        }
+        if transcript
+        else None,
     }

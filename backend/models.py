@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, Text, Float, Boolean, DateTime, ForeignKey, JSON
-from sqlalchemy.orm import relationship
+
 from database import Base
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integer, Text
+from sqlalchemy.orm import relationship
 
 
 class Lecture(Base):
@@ -16,7 +17,9 @@ class Lecture(Base):
     status = Column(Text, default="recorded")  # recorded | transcribing | transcribed
 
     tags = relationship("Tag", back_populates="lecture", cascade="all, delete-orphan")
-    transcript = relationship("Transcript", back_populates="lecture", uselist=False, cascade="all, delete-orphan")
+    transcript = relationship(
+        "Transcript", back_populates="lecture", uselist=False, cascade="all, delete-orphan"
+    )
 
 
 class Tag(Base):

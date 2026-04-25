@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
+
+from database import RECORDINGS_DIR, Base, engine
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from database import engine, Base, RECORDINGS_DIR
 from routes import lectures, transcribe
 
 

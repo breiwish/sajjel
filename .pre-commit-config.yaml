@@ -1,9 +1,26 @@
+# Lint + secret scanning. Local enforcement: .git/hooks/pre-commit
+# (calls these tools directly to bypass the pre-commit framework's
+# Python 3.14 / libexpat issue on macOS Tahoe). This file documents
+# the canonical toolchain for CI and future framework re-enablement.
+
 repos:
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
     hooks:
       - id: gitleaks
-        name: gitleaks (scan staged changes for secrets)
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.12
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        types_or: [html, javascript, css, json, markdown, yaml]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -12,7 +29,3 @@ repos:
       - id: check-added-large-files
         args: ['--maxkb=5000']
       - id: check-merge-conflict
-      - id: end-of-file-fixer
-        exclude: '\.(svg|ico|png|gif|webm|ttf)$'
-      - id: trailing-whitespace
-        exclude: '\.(svg|ico|png|gif|webm|ttf)$'

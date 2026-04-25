@@ -1,1202 +1,1792 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" dir="ltr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa&display=swap" rel="stylesheet">
-<title>Sajjel</title>
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="alternate icon" type="image/png" href="/favicon.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; height: 100vh; display: flex; flex-direction: column; }
-
-  header { padding: 14px 20px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 12px; }
-  #logo { display: flex; align-items: center; text-decoration: none; opacity: 0.85; transition: opacity 0.15s; }
-  #logo:hover { opacity: 1; }
-  h1 { font-size: 16px; font-weight: normal; color: #fff; flex: 1; }
-
-  #status { font-size: 12px; color: #666; }
-  #status.recording { color: #ff4444; }
-  #status.playing { color: #44aaff; }
-
-  .controls { display: flex; gap: 8px; }
-  button { border: none; cursor: pointer; border-radius: 6px; font-size: 13px; padding: 7px 14px; transition: background 0.15s; }
-  #recBtn  { background: #ff4444; color: #fff; }
-  #recBtn:hover  { background: #ff2222; }
-  #recBtn.recording { background: #555; }
-  #recBtn.recording:hover { background: #444; }
-  #playBtn { background: #2a2a2a; color: #ccc; border: 1px solid #333; }
-  #playBtn:hover { background: #333; }
-  #playBtn:disabled { opacity: 0.3; cursor: default; }
-  .load-btn { background: #1a1a2a; color: #99f; border: 1px solid #2a2a3a; }
-  .load-btn:hover { background: #222233; }
-
-  /* Session picker overlay */
-  #sessionPicker { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
-  #sessionPicker.open { display: flex; }
-  #sessionList {
-    background: #1a1a1a; border: 1px solid #333; border-radius: 10px;
-    width: 400px; max-height: 70vh; overflow-y: auto; padding: 8px 0;
-  }
-  #sessionList h3 { font-size: 13px; color: #888; padding: 10px 16px 6px; }
-  .session-item { position: relative; }
-  .session-item .s-delete {
-    position: absolute; top: 10px; right: 12px; background: none; border: 1px solid #442222;
-    color: #884444; font-size: 11px; padding: 2px 8px; border-radius: 3px; cursor: pointer;
-    opacity: 0; transition: opacity 0.15s;
-  }
-  .session-item:hover .s-delete { opacity: 1; }
-  .session-item .s-delete:hover { background: #331111; color: #cc5555; border-color: #663333; }
-  .session-item {
-    padding: 10px 16px; cursor: pointer; border-bottom: 1px solid #222;
-    transition: background 0.1s;
-  }
-  .session-item:hover { background: #222; }
-  .session-item .s-title { font-size: 14px; color: #ddd; font-weight: 500; }
-  .session-item .s-meta { font-size: 11px; color: #555; margin-top: 3px; }
-  .session-item .s-audio { color: #4a4; font-size: 10px; }
-
-  /* Onboarding overlay */
-  #onboarding { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: center; }
-  #onboarding.open { display: flex; }
-  .ob-container {
-    background: #1a1a1a; border: 1px solid #333; border-radius: 12px;
-    width: 640px; max-width: 90vw; max-height: 88vh; overflow: hidden;
-    position: relative; display: flex; flex-direction: column;
-  }
-  .ob-close {
-    position: absolute; top: 8px; right: 12px; z-index: 10;
-    background: none; border: none; color: #666; font-size: 22px; cursor: pointer;
-    padding: 4px 8px; line-height: 1;
-  }
-  .ob-close:hover { color: #ccc; }
-  .ob-slides { position: relative; flex: 1; overflow: hidden; }
-  .ob-slide {
-    display: none; flex-direction: column; align-items: center;
-    padding: 24px 32px 16px; text-align: center;
-  }
-  .ob-slide.active { display: flex; }
-  .ob-slide img {
-    width: 100%; max-height: 320px; object-fit: contain;
-    border-radius: 8px; border: 1px solid #2a2a2a; margin-bottom: 16px;
-  }
-  .ob-slide h2 { font-size: 18px; color: #e0e0e0; font-weight: 600; margin: 0 0 8px; }
-  .ob-slide p { font-size: 13px; color: #999; line-height: 1.6; margin: 0; max-width: 480px; }
-  .ob-slide code { background: #222; padding: 1px 5px; border-radius: 3px; color: #9dcfff; font-size: 12px; }
-  .ob-slide kbd {
-    background: #222; border: 1px solid #444; border-radius: 3px;
-    padding: 1px 5px; font-size: 11px; color: #ccc; font-family: monospace;
-  }
-  .ob-nav { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px 0; }
-  .ob-arrow {
-    background: #222; border: 1px solid #333; color: #888; font-size: 18px;
-    width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .ob-arrow:hover { background: #333; color: #ccc; }
-  .ob-arrow:disabled { opacity: 0.2; cursor: default; }
-  .ob-dots { display: flex; gap: 6px; }
-  .ob-dot {
-    width: 8px; height: 8px; border-radius: 50%; background: #333;
-    cursor: pointer; transition: background 0.15s;
-  }
-  .ob-dot.active { background: #44aaff; }
-  .ob-dismiss {
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 0 0 16px; font-size: 12px; color: #555; cursor: pointer;
-  }
-  .ob-dismiss input { accent-color: #44aaff; }
-
-  .timer { font-size: 13px; font-family: monospace; color: #888; min-width: 48px; text-align: right; }
-  #timer { display: none; }
-  #timer.visible { display: inline; }
-
-  main { display: flex; flex: 1; overflow: hidden; }
-
-  /* Notes pane */
-  #notePane { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #1e1e1e; }
-  #noteTitle {
-    background: transparent; color: #fff; border: none; outline: none;
-    padding: 16px 16px 4px; font-size: 22px; font-weight: 600; line-height: 1.3;
-    font-family: system-ui, sans-serif; width: 100%;
-  }
-  #noteTitle::placeholder { color: #444; }
-  #noteArea {
-    flex: 1; background: transparent; color: #ddd; border: none; outline: none;
-    padding: 8px 16px 16px; font-size: 14px; line-height: 1.7; resize: none;
-    font-family: system-ui, sans-serif;
-  }
-  #noteArea::placeholder { color: #444; }
-
-  /* Tags pane */
-  #tagPane { width: 220px; display: flex; flex-direction: column; }
-  #tagPane h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #555; padding: 14px 14px 8px; }
-  #tagList { flex: 1; overflow-y: auto; }
-  .tag-item {
-    padding: 9px 14px; border-left: 3px solid transparent;
-    transition: background 0.1s; position: relative; cursor: pointer;
-  }
-  .tag-item:hover { background: #1a1a1a; }
-  .tag-item.active { border-left-color: #44aaff; background: #111a22; }
-  .tag-item.pin { border-left-color: #ff8800; }
-  .tag-header { display: flex; align-items: center; justify-content: space-between; }
-  .tag-header-left { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-  .tag-name { font-size: 13px; color: #cde0f0; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tag-name.unnamed { color: #ff8800; font-style: italic; }
-  .tag-time { font-size: 11px; color: #555; font-family: monospace; }
-
-  /* Tag control panel (expandable) */
-  .tag-controls {
-    display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid #222;
-  }
-  .tag-item.expanded .tag-controls { display: block; }
-  .tag-ctrl-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
-  .tag-ctrl-row:last-child { margin-bottom: 0; }
-  .tag-jump-btn {
-    font-size: 11px; padding: 3px 8px; background: #1a2a3a; color: #44aaff;
-    border: 1px solid #2a3a4a; border-radius: 3px; cursor: pointer;
-  }
-  .tag-jump-btn:hover { background: #2a3a5a; }
-  .nudge-btn {
-    font-size: 9px; padding: 2px 5px; background: #222; color: #888;
-    border: 1px solid #333; border-radius: 3px; cursor: pointer;
-  }
-  .nudge-btn:hover { background: #333; color: #ccc; }
-  .time-input {
-    font-size: 10px; width: 50px; background: #111; color: #aaf; border: 1px solid #333;
-    border-radius: 3px; padding: 2px 4px; font-family: monospace; text-align: center;
-  }
-  .tag-ctrl-label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: .04em; }
-
-  /* Pin name input */
-  .pin-name-input {
-    font-size: 12px; width: 100%; background: #111; color: #ff8800; border: 1px solid #442200;
-    border-radius: 3px; padding: 4px 6px; margin-top: 0; outline: none;
-  }
-  .pin-name-input:focus { border-color: #ff8800; }
-
-  /* Audio bar */
-  #audioBar {
-    padding: 10px 16px; background: #111; border-top: 1px solid #1e1e1e;
-    display: flex; align-items: center; gap: 10px;
-  }
-  #playBtn { background: none; color: #44aaff; font-size: 18px; padding: 4px 8px; min-width: 32px; border: none; }
-  #playBtn:disabled { color: #333; }
-  #seekBar { flex: 1; accent-color: #44aaff; height: 3px; cursor: pointer; }
-
-  #hint { padding: 10px 16px; font-size: 11px; color: #444; border-top: 1px solid #1a1a1a; }
-
-  /* Save bar (appears when edits detected on loaded session) */
-  #saveBar {
-    display: none; padding: 8px 16px; background: #1a1a0a; border-top: 1px solid #333a20;
-    gap: 8px; align-items: center; justify-content: flex-end;
-  }
-  #saveBar.visible { display: flex; }
-  #saveBar span { flex: 1; font-size: 12px; color: #aa8; }
-  .save-btn { background: #2a3a1a; color: #ad3; border: 1px solid #3a4a2a; font-size: 12px; padding: 5px 12px; }
-  .save-btn:hover { background: #334422; }
-  .save-new-btn { background: #1a2a3a; color: #6af; border: 1px solid #2a3a4a; font-size: 12px; padding: 5px 12px; }
-  .save-new-btn:hover { background: #223344; }
-</style>
-</head>
-<body>
-
-<header>
-  <a href="/" onclick="event.preventDefault();resetToNew()" id="logo" title="New recording">
-    <svg width="32" height="32" viewBox="0 0 64 64" fill="none">
-      <!-- Flat open book (bird's eye, pages spread wide) -->
-      <path d="M32 42 C32 42 22 40 6 36 L6 44 C22 48 32 50 32 50 C32 50 42 48 58 44 L58 36 C42 40 32 42 32 42Z" stroke="#9dcfff" stroke-width="2.5" fill="none"/>
-      <path d="M32 42 C32 42 22 40 6 36 L16 30 C24 33 32 34 32 34 C32 34 40 33 48 30 L58 36 C42 40 32 42 32 42Z" stroke="#9dcfff" stroke-width="2" fill="none"/>
-      <line x1="32" y1="34" x2="32" y2="50" stroke="#9dcfff" stroke-width="1.5"/>
-      <!-- Sound waves pointing up (wifi-style arcs) -->
-      <path d="M26 24 Q32 20 38 24" stroke="#44aaff" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0.9"/>
-      <path d="M22 18 Q32 12 42 18" stroke="#44aaff" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0.6"/>
-      <path d="M18 12 Q32 4 46 12" stroke="#44aaff" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0.35"/>
-    </svg>
-  </a>
-  <h1 style="font-family:'Aref Ruqaa',serif;font-size:22px">سَجِّلْ</h1>
-  <span id="status">idle</span>
-  <div class="controls">
-    <button id="recBtn" onclick="toggleRecord()">⏺ Record</button>
-    <button id="pinBtn" onclick="dropPin()" title="Pin this moment (Ctrl+M)" style="display:none;background:#442200;color:#ff8800;border:1px solid #663300">📌 Pin</button>
-    <button class="load-btn" onclick="openSessionPicker()">📂 Load</button>
-    <button onclick="showOnboarding()" title="How to use Sajjel" style="background:none;border:1px solid #333;color:#888;font-size:13px;padding:4px 10px;border-radius:50%;cursor:pointer">?</button>
-  </div>
-  <span class="timer" id="timer">0:00</span>
-</header>
-
-<main>
-  <div id="notePane">
-    <input type="text" id="noteTitle" placeholder="Session title…">
-    <textarea id="noteArea" placeholder="Start typing notes…&#10;&#10;Use #Tag Name# to mark moments."></textarea>
-    <div id="hint" style="display:none">Tip: type #Tag Name# to mark a moment · Press Ctrl+M or 📌 to drop a quick pin</div>
-  </div>
-  <div id="tagPane">
-    <h2>Tags</h2>
-    <div id="tagList"></div>
-  </div>
-</main>
-
-<div id="saveBar">
-  <span>Unsaved changes</span>
-  <button class="save-btn" onclick="overwriteSession()">Overwrite</button>
-  <button class="save-new-btn" onclick="saveAsNew()">Save as new</button>
-</div>
-
-<div id="audioBar">
-  <button id="playBtn" onclick="togglePlay()" disabled>▶</button>
-  <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1" oninput="seekAudio(this.value)">
-  <span class="timer" id="playTimer">0:00</span>
-  <button id="replayToggle" onclick="toggleReplay()" title="Toggle text replay" style="background:none;color:#44aaff;font-size:11px;padding:4px 8px;border:1px solid #333;opacity:0.5">Live Text</button>
-</div>
-
-<audio id="audioEl" style="display:none"></audio>
-
-<div id="sessionPicker" onclick="if(event.target===this)closeSessionPicker()">
-  <div id="sessionList"></div>
-</div>
-
-<div id="onboarding" onclick="if(event.target===this)closeOnboarding()">
-  <div class="ob-container">
-    <button class="ob-close" onclick="closeOnboarding()">&times;</button>
-    <div class="ob-slides">
-      <div class="ob-slide active" data-slide="0">
-        <img src="/onboarding/app-overview.png" alt="App overview">
-        <h2>Welcome to Sajjel</h2>
-        <p>Record audio and take synchronized notes. Your text is timestamped automatically, so you can jump back to any moment later.</p>
-      </div>
-      <div class="ob-slide" data-slide="1">
-        <img src="/onboarding/tagging-demo.gif" alt="Tagging demo">
-        <h2>Record and Tag</h2>
-        <p>Press Record, then type notes. Wrap any text in <code>#hash marks#</code> to create a tag. Press <kbd>Ctrl+M</kbd> or the pin button to drop a quick unnamed marker.</p>
-      </div>
-      <div class="ob-slide" data-slide="2">
-        <img src="/onboarding/live-text-replay.gif" alt="Live text replay">
-        <h2>Replay Your Session</h2>
-        <p>Load a recording and press Play. Toggle <strong>Live Text</strong> to watch your notes replay in sync with the audio — see exactly what you typed at each moment.</p>
-      </div>
-      <div class="ob-slide" data-slide="3">
-        <img src="/onboarding/nudge-controls.png" alt="Tag controls">
-        <h2>Navigate and Refine</h2>
-        <p>Click any tag to jump to that moment. Right-click a tag to nudge its timestamp. Use <kbd>Arrow</kbd> keys to scrub (hold <kbd>Shift</kbd> for 30s jumps).</p>
-      </div>
-      <div class="ob-slide" data-slide="4">
-        <img src="/onboarding/session-picker.png" alt="Session picker">
-        <h2>Everything is Saved</h2>
-        <p>Notes auto-save to disk as you type. Use the <strong>Load</strong> button to browse previous sessions. Click the <strong>?</strong> button anytime to see this guide again.</p>
-      </div>
-    </div>
-    <div class="ob-nav">
-      <button class="ob-arrow" id="obPrev" onclick="obNav(-1)">&lsaquo;</button>
-      <div class="ob-dots" id="obDots"></div>
-      <button class="ob-arrow" id="obNext" onclick="obNav(1)">&rsaquo;</button>
-    </div>
-    <label class="ob-dismiss">
-      <input type="checkbox" id="obDismissCheck"> Don't show this again
-    </label>
-  </div>
-</div>
-
-<script>
-let mediaRecorder = null;
-let audioChunks = [];
-let audioBlob = null;
-let recordStart = null;
-let recInterval = null;
-
-// ── Edit tracking for loaded sessions ─────────────────────────────────────
-let loadedFromDisk = false;      // true if current session was loaded (not fresh recording)
-let loadedFolder = null;         // folder name of the loaded session
-let loadedAudioUrl = null;       // audio URL to link from new version
-let originalNotes = '';          // snapshot of notes at load time
-let originalTitle = '';
-let originalTagsJSON = '[]';
-let hasUnsavedEdits = false;
-let tags = [];
-let isRecording = false;
-let isPlaying = false;
-let syncInterval = null;
-let sessionId = null;
-let sessionCreatedAt = null;
-let snapshots = [];      // [{t, p, d, i}] — delta snapshots at 50ms
-                         // t=time, p=position, d=deleted count, i=inserted text
-                         // First entry is {t, text} as the baseline
-let snapshotInterval = null;
-let lastSnapshotText = '';
-let replayEnabled = false;
-
-function toTitleCase(str) {
-  return str.replace(/\b\w/g, c => c.toUpperCase());
-}
-
-// Compute a minimal delta between two strings
-function computeDelta(oldStr, newStr) {
-  // Find common prefix
-  let start = 0;
-  while (start < oldStr.length && start < newStr.length && oldStr[start] === newStr[start]) start++;
-  // Find common suffix (from end, but not overlapping prefix)
-  let oldEnd = oldStr.length, newEnd = newStr.length;
-  while (oldEnd > start && newEnd > start && oldStr[oldEnd - 1] === newStr[newEnd - 1]) { oldEnd--; newEnd--; }
-  const deleted = oldEnd - start;
-  const inserted = newStr.slice(start, newEnd);
-  if (deleted === 0 && inserted === '') return null;
-  return { p: start, d: deleted, i: inserted };
-}
-
-// Reconstruct text at a given time from delta snapshots
-function reconstructAtTime(snaps, targetTime) {
-  if (!snaps || snaps.length === 0) return '';
-  // Legacy format: [{time, text}] — full snapshots
-  if (snaps[0].time !== undefined) {
-    let snap = snaps[0];
-    for (let j = snaps.length - 1; j >= 0; j--) {
-      if (snaps[j].time <= targetTime) { snap = snaps[j]; break; }
-    }
-    return snap.text;
-  }
-  // Delta format: first entry is {t, text} baseline, rest are {t, p, d, i}
-  let text = snaps[0].text || '';
-  for (let j = 1; j < snaps.length; j++) {
-    if (snaps[j].t > targetTime) break;
-    const s = snaps[j];
-    text = text.slice(0, s.p) + s.i + text.slice(s.p + s.d);
-  }
-  return text;
-}
-
-// Get final text from snapshots
-function snapshotsFinalText(snaps) {
-  if (!snaps || snaps.length === 0) return null;
-  if (snaps[0].time !== undefined) return snaps[snaps.length - 1].text;
-  return reconstructAtTime(snaps, Infinity);
-}
-
-const noteTitle = document.getElementById('noteTitle');
-const noteArea = document.getElementById('noteArea');
-const audioEl  = document.getElementById('audioEl');
-const tagList  = document.getElementById('tagList');
-const recBtn   = document.getElementById('recBtn');
-const playBtn  = document.getElementById('playBtn');
-const timerEl  = document.getElementById('timer');
-const statusEl = document.getElementById('status');
-const seekBar  = document.getElementById('seekBar');
-const playTimerEl = document.getElementById('playTimer');
-
-// ── Recording ──────────────────────────────────────────────────────────────
-
-async function toggleRecord() {
-  if (!isRecording) await startRecord();
-  else stopRecord();
-}
-
-async function startRecord() {
-  let stream;
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  } catch (err) {
-    statusEl.textContent = 'mic denied';
-    statusEl.className = 'recording';
-    alert('Microphone access denied. Please allow mic access and try again.');
-    return;
-  }
-  audioChunks = [];
-  tags = [];
-  snapshots = [];
-  lastSnapshotText = '';
-  renderTags();
-  noteTitle.value = '';
-  noteArea.value = '';
-  sessionId = Date.now().toString(36);
-  sessionCreatedAt = Date.now();
-
-  mediaRecorder = new MediaRecorder(stream);
-  mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-  mediaRecorder.onstop = finalizeAudio;
-  mediaRecorder.start(200);
-
-  recordStart = Date.now();
-  isRecording = true;
-  recBtn.textContent = '⏹ Stop';
-  recBtn.classList.add('recording');
-  statusEl.textContent = 'recording';
-  statusEl.className = 'recording';
-  playBtn.disabled = true;
-  document.getElementById('pinBtn').style.display = '';
-  document.getElementById('audioBar').style.display = 'none';
-  document.getElementById('hint').style.display = '';
-  timerEl.classList.add('visible');
-
-  recInterval = setInterval(() => {
-    timerEl.textContent = fmtTime((Date.now() - recordStart) / 1000);
-  }, 500);
-
-  // Delta snapshots at 50ms — store baseline then diffs only
-  lastSnapshotText = noteArea.value;
-  snapshots.push({ t: 0, text: lastSnapshotText });  // baseline
-  snapshotInterval = setInterval(() => {
-    const text = noteArea.value;
-    if (text !== lastSnapshotText) {
-      const time = (Date.now() - recordStart) / 1000;
-      const delta = computeDelta(lastSnapshotText, text);
-      if (delta) snapshots.push({ t: time, ...delta });
-      lastSnapshotText = text;
-    }
-  }, 50);
-
-}
-
-function stopRecord() {
-  mediaRecorder.stop();
-  mediaRecorder.stream.getTracks().forEach(t => t.stop());
-  clearInterval(recInterval);
-  clearInterval(snapshotInterval);
-  isRecording = false;
-  recBtn.textContent = '⏺ Record';
-  recBtn.classList.remove('recording');
-  statusEl.textContent = 'idle';
-  statusEl.className = '';
-  document.getElementById('pinBtn').style.display = 'none';
-  document.getElementById('audioBar').style.display = '';
-  document.getElementById('hint').style.display = 'none';
-  timerEl.classList.remove('visible');
-}
-
-function finalizeAudio() {
-  audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-  audioEl.src = URL.createObjectURL(audioBlob);
-  playBtn.disabled = false;
-  autoSave();
-  saveAudioToDB(sessionId, audioBlob);
-  saveToDisk();
-}
-
-// ── Tag detection ──────────────────────────────────────────────────────────
-
-function onNoteInput() {
-  const text = noteArea.value;
-  const tagRe = /#([^#]+)#/g;
-  const found = [];
-  let match;
-  while ((match = tagRe.exec(text)) !== null) {
-    found.push({ name: match[1], charIndex: match.index });
-  }
-
-  // Match found tags to existing ones by POSITION (so renaming preserves timestamp)
-  const newTags = [];
-  const used = new Set();
-  for (const f of found) {
-    let bestIdx = -1, bestDist = Infinity;
-    for (let i = 0; i < tags.length; i++) {
-      if (used.has(i)) continue;
-      const dist = Math.abs(tags[i].charIndex - f.charIndex);
-      if (dist < bestDist) { bestDist = dist; bestIdx = i; }
-    }
-    // Match if position is close enough (within 20 chars handles minor edits above)
-    if (bestIdx >= 0 && bestDist < 20) {
-      used.add(bestIdx);
-      newTags.push({ name: f.name, time: tags[bestIdx].time, charIndex: f.charIndex });
-    } else {
-      const time = isRecording && recordStart ? (Date.now() - recordStart) / 1000 : 0;
-      newTags.push({ name: f.name, time, charIndex: f.charIndex });
-    }
-  }
-
-  // Preserve pins (they aren't in the text, so keep them alongside text-based tags)
-  const pins = tags.filter(t => t.isPin);
-  tags = [...newTags, ...pins];
-  tags.sort((a, b) => a.time - b.time);
-  renderTags();
-  checkForEdits();
-  if (!loadedFromDisk) { autoSave(); debouncedNoteSave(); }
-}
-
-function checkForEdits() {
-  if (!loadedFromDisk) return;
-  const changed = noteArea.value !== originalNotes || noteTitle.value !== originalTitle || JSON.stringify(tags) !== originalTagsJSON;
-  if (changed !== hasUnsavedEdits) {
-    hasUnsavedEdits = changed;
-    document.getElementById('saveBar').classList.toggle('visible', changed);
-  }
-}
-
-// Always listen for input (not just during recording)
-noteArea.addEventListener('input', onNoteInput);
-noteTitle.addEventListener('input', () => {
-  checkForEdits();
-  if (!loadedFromDisk) { autoSave(); debouncedNoteSave(); }
-});
-
-// ── Playback ───────────────────────────────────────────────────────────────
-
-function togglePlay() {
-  if (!isPlaying) startPlay();
-  else pausePlay();
-}
-
-function startPlay() {
-  audioEl.play();
-  isPlaying = true;
-  playBtn.textContent = '⏸';
-  statusEl.textContent = 'playing';
-  statusEl.className = 'playing';
-  seekBar.max = audioEl.duration || 100;
-
-  syncInterval = setInterval(() => {
-    // Keep seekbar max in sync (webm duration can resolve late)
-    if (audioEl.duration && isFinite(audioEl.duration)) seekBar.max = audioEl.duration;
-    const t = audioEl.currentTime;
-    seekBar.value = t;
-    playTimerEl.textContent = fmtTime(t) + ' / ' + fmtTime(audioEl.duration || 0);
-    highlightActiveTag(t);
-    replayText(t);
-  }, 200);
-}
-
-function pausePlay() {
-  audioEl.pause();
-  isPlaying = false;
-  playBtn.textContent = '▶';
-  statusEl.textContent = 'idle';
-  statusEl.className = '';
-  clearInterval(syncInterval);
-  // Restore full final text
-  const finalText = snapshotsFinalText(snapshots);
-  if (finalText !== null) noteArea.value = finalText;
-}
-
-function replayText(currentTime) {
-  if (!replayEnabled || snapshots.length === 0) return;
-  noteArea.value = reconstructAtTime(snapshots, currentTime);
-}
-
-function toggleReplay() {
-  replayEnabled = !replayEnabled;
-  const btn = document.getElementById('replayToggle');
-  btn.style.opacity = replayEnabled ? '1' : '0.5';
-  btn.style.borderColor = replayEnabled ? '#44aaff' : '#333';
-  if (!replayEnabled && snapshots.length > 0) {
-    // Restore full text when turning off
-    const finalText = snapshotsFinalText(snapshots);
-    if (finalText !== null) noteArea.value = finalText;
-  }
-}
-
-audioEl.onended = () => {
-  pausePlay();
-  playBtn.textContent = '▶';
-};
-
-audioEl.onloadedmetadata = () => {
-  if (audioEl.duration && isFinite(audioEl.duration)) {
-    seekBar.max = audioEl.duration;
-  } else {
-    // webm served from disk often has Infinity duration — force resolve it
-    fixWebmDuration();
-  }
-};
-
-audioEl.addEventListener('durationchange', () => {
-  if (audioEl.duration && isFinite(audioEl.duration)) {
-    seekBar.max = audioEl.duration;
-  }
-});
-
-let fixingDuration = false;
-function fixWebmDuration() {
-  if (fixingDuration) return;
-  fixingDuration = true;
-  // Seek to a very large time to force the browser to resolve the real duration
-  const prevTime = audioEl.currentTime;
-  const onSeeked = () => {
-    audioEl.removeEventListener('seeked', onSeeked);
-    if (audioEl.duration && isFinite(audioEl.duration)) {
-      seekBar.max = audioEl.duration;
-    }
-    // Restore to where we were (or 0 if fresh load)
-    audioEl.currentTime = prevTime;
-    fixingDuration = false;
-  };
-  audioEl.addEventListener('seeked', onSeeked);
-  audioEl.currentTime = 1e10;
-}
-
-function seekAudio(val) {
-  if (fixingDuration) return;
-  audioEl.currentTime = parseFloat(val);
-  playTimerEl.textContent = fmtTime(audioEl.currentTime);
-  highlightActiveTag(audioEl.currentTime);
-}
-
-// ── Pins ──────────────────────────────────────────────────────────────────
-
-function dropPin() {
-  if (!isRecording || !recordStart) return;
-  const time = (Date.now() - recordStart) / 1000;
-  tags.push({ name: '', time, charIndex: -1, isPin: true });
-  tags.sort((a, b) => a.time - b.time);
-  renderTags();
-  onTagsChanged();
-}
-
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-  // Ctrl+M / Cmd+M: drop pin
-  if ((e.ctrlKey || e.metaKey) && e.key === 'm') {
-    e.preventDefault();
-    if (isRecording) dropPin();
-    return;
-  }
-  // Arrow keys: scrub audio during playback (skip if typing in an input/textarea)
-  if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && audioEl.src && !isRecording) {
-    const active = document.activeElement;
-    if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) return;
-    e.preventDefault();
-    const skip = e.shiftKey ? 30 : 5; // shift+arrow = 30s, arrow = 5s
-    const delta = e.key === 'ArrowLeft' ? -skip : skip;
-    const newTime = Math.max(0, Math.min(audioEl.duration || 0, audioEl.currentTime + delta));
-    audioEl.currentTime = newTime;
-    seekBar.value = newTime;
-    playTimerEl.textContent = fmtTime(newTime) + ' / ' + fmtTime(audioEl.duration || 0);
-    highlightActiveTag(newTime);
-    replayText(newTime);
-  }
-});
-
-function namePin(index, name) {
-  if (!tags[index]) return;
-  tags[index].name = name.trim();
-  if (name.trim()) tags[index].isPin = false;
-  renderTags();
-  onTagsChanged();
-}
-
-function nudgeTag(index, deltaSec) {
-  if (!tags[index]) return;
-  const tag = tags[index];
-  tag.time = Math.max(0, tag.time + deltaSec);
-  tags.sort((a, b) => a.time - b.time);
-  expandedTagIndex = tags.indexOf(tag);
-  renderTags();
-  onTagsChanged();
-}
-
-function setTagTime(index, timeStr) {
-  const parts = timeStr.split(':');
-  if (parts.length !== 2) return;
-  const secs = parseInt(parts[0]) * 60 + parseInt(parts[1]);
-  if (isNaN(secs)) return;
-  const tag = tags[index];
-  tag.time = Math.max(0, secs);
-  tags.sort((a, b) => a.time - b.time);
-  expandedTagIndex = tags.indexOf(tag);
-  renderTags();
-  onTagsChanged();
-}
-
-function onTagsChanged() {
-  autoSave();
-  if (loadedFromDisk) {
-    checkForEdits();
-  } else {
-    debouncedNoteSave();
-  }
-}
-
-// ── Tags UI ────────────────────────────────────────────────────────────────
-
-let expandedTagIndex = -1;
-
-document.addEventListener('click', (e) => {
-  if (expandedTagIndex === -1) return;
-  if (e.target.closest('.tag-item')) return;
-  expandedTagIndex = -1;
-  renderTags();
-});
-
-function renderTags() {
-  tagList.innerHTML = '';
-  tags.forEach((tag, i) => {
-    const el = document.createElement('div');
-    el.className = 'tag-item' + (tag.isPin ? ' pin' : '') + (i === expandedTagIndex ? ' expanded' : '');
-    el.dataset.index = i;
-
-    // ── Header row (always visible): name + time + expand arrow ──
-    const header = document.createElement('div');
-    header.className = 'tag-header';
-    header.onclick = (e) => {
-      e.stopPropagation();
-      jumpToTag(i);
-    };
-    header.oncontextmenu = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      expandedTagIndex = expandedTagIndex === i ? -1 : i;
-      renderTags();
-      if (expandedTagIndex >= 0) {
-        const expanded = tagList.querySelector('.tag-item.expanded');
-        if (expanded) expanded.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa&display=swap"
+      rel="stylesheet" />
+    <title>Sajjel</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
-    };
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0f0f0f;
+        color: #e0e0e0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
 
-    const left = document.createElement('div');
-    left.className = 'tag-header-left';
+      header {
+        padding: 14px 20px;
+        border-bottom: 1px solid #222;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      #logo {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        opacity: 0.85;
+        transition: opacity 0.15s;
+      }
+      #logo:hover {
+        opacity: 1;
+      }
+      h1 {
+        font-size: 16px;
+        font-weight: normal;
+        color: #fff;
+        flex: 1;
+      }
 
-    const nameDiv = document.createElement('div');
-    nameDiv.className = 'tag-name' + (tag.isPin && !tag.name ? ' unnamed' : '');
-    const useTitle = tag.titleCase !== false; // default true
-    const displayName = tag.isPin && !tag.name ? '📌 Unnamed marker' : (useTitle ? toTitleCase(tag.name) : tag.name);
-    nameDiv.textContent = displayName;
-    left.appendChild(nameDiv);
+      #status {
+        font-size: 12px;
+        color: #666;
+      }
+      #status.recording {
+        color: #ff4444;
+      }
+      #status.playing {
+        color: #44aaff;
+      }
 
-    const timeSpan = document.createElement('span');
-    timeSpan.className = 'tag-time';
-    timeSpan.textContent = fmtTime(tag.time);
-    left.appendChild(timeSpan);
+      .controls {
+        display: flex;
+        gap: 8px;
+      }
+      button {
+        border: none;
+        cursor: pointer;
+        border-radius: 6px;
+        font-size: 13px;
+        padding: 7px 14px;
+        transition: background 0.15s;
+      }
+      #recBtn {
+        background: #ff4444;
+        color: #fff;
+      }
+      #recBtn:hover {
+        background: #ff2222;
+      }
+      #recBtn.recording {
+        background: #555;
+      }
+      #recBtn.recording:hover {
+        background: #444;
+      }
+      #playBtn {
+        background: #2a2a2a;
+        color: #ccc;
+        border: 1px solid #333;
+      }
+      #playBtn:hover {
+        background: #333;
+      }
+      #playBtn:disabled {
+        opacity: 0.3;
+        cursor: default;
+      }
+      .load-btn {
+        background: #1a1a2a;
+        color: #99f;
+        border: 1px solid #2a2a3a;
+      }
+      .load-btn:hover {
+        background: #222233;
+      }
 
-    header.appendChild(left);
-    el.appendChild(header);
+      /* Session picker overlay */
+      #sessionPicker {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 100;
+        justify-content: center;
+        align-items: center;
+      }
+      #sessionPicker.open {
+        display: flex;
+      }
+      #sessionList {
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 10px;
+        width: 400px;
+        max-height: 70vh;
+        overflow-y: auto;
+        padding: 8px 0;
+      }
+      #sessionList h3 {
+        font-size: 13px;
+        color: #888;
+        padding: 10px 16px 6px;
+      }
+      .session-item {
+        position: relative;
+      }
+      .session-item .s-delete {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        background: none;
+        border: 1px solid #442222;
+        color: #884444;
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 3px;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.15s;
+      }
+      .session-item:hover .s-delete {
+        opacity: 1;
+      }
+      .session-item .s-delete:hover {
+        background: #331111;
+        color: #cc5555;
+        border-color: #663333;
+      }
+      .session-item {
+        padding: 10px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #222;
+        transition: background 0.1s;
+      }
+      .session-item:hover {
+        background: #222;
+      }
+      .session-item .s-title {
+        font-size: 14px;
+        color: #ddd;
+        font-weight: 500;
+      }
+      .session-item .s-meta {
+        font-size: 11px;
+        color: #555;
+        margin-top: 3px;
+      }
+      .session-item .s-audio {
+        color: #4a4;
+        font-size: 10px;
+      }
 
-    // ── Expandable control panel ──
-    const controls = document.createElement('div');
-    controls.className = 'tag-controls';
+      /* Onboarding overlay */
+      #onboarding {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 200;
+        justify-content: center;
+        align-items: center;
+      }
+      #onboarding.open {
+        display: flex;
+      }
+      .ob-container {
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 12px;
+        width: 640px;
+        max-width: 90vw;
+        max-height: 88vh;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+      .ob-close {
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        z-index: 10;
+        background: none;
+        border: none;
+        color: #666;
+        font-size: 22px;
+        cursor: pointer;
+        padding: 4px 8px;
+        line-height: 1;
+      }
+      .ob-close:hover {
+        color: #ccc;
+      }
+      .ob-slides {
+        position: relative;
+        flex: 1;
+        overflow: hidden;
+      }
+      .ob-slide {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        padding: 24px 32px 16px;
+        text-align: center;
+      }
+      .ob-slide.active {
+        display: flex;
+      }
+      .ob-slide img {
+        width: 100%;
+        max-height: 320px;
+        object-fit: contain;
+        border-radius: 8px;
+        border: 1px solid #2a2a2a;
+        margin-bottom: 16px;
+      }
+      .ob-slide h2 {
+        font-size: 18px;
+        color: #e0e0e0;
+        font-weight: 600;
+        margin: 0 0 8px;
+      }
+      .ob-slide p {
+        font-size: 13px;
+        color: #999;
+        line-height: 1.6;
+        margin: 0;
+        max-width: 480px;
+      }
+      .ob-slide code {
+        background: #222;
+        padding: 1px 5px;
+        border-radius: 3px;
+        color: #9dcfff;
+        font-size: 12px;
+      }
+      .ob-slide kbd {
+        background: #222;
+        border: 1px solid #444;
+        border-radius: 3px;
+        padding: 1px 5px;
+        font-size: 11px;
+        color: #ccc;
+        font-family: monospace;
+      }
+      .ob-nav {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 12px 0;
+      }
+      .ob-arrow {
+        background: #222;
+        border: 1px solid #333;
+        color: #888;
+        font-size: 18px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .ob-arrow:hover {
+        background: #333;
+        color: #ccc;
+      }
+      .ob-arrow:disabled {
+        opacity: 0.2;
+        cursor: default;
+      }
+      .ob-dots {
+        display: flex;
+        gap: 6px;
+      }
+      .ob-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #333;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .ob-dot.active {
+        background: #44aaff;
+      }
+      .ob-dismiss {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 0 16px;
+        font-size: 12px;
+        color: #555;
+        cursor: pointer;
+      }
+      .ob-dismiss input {
+        accent-color: #44aaff;
+      }
 
-    // Nudge controls
-    const nudgeLabel = document.createElement('div');
-    nudgeLabel.className = 'tag-ctrl-label';
-    nudgeLabel.textContent = 'Nudge timestamp';
-    controls.appendChild(nudgeLabel);
+      .timer {
+        font-size: 13px;
+        font-family: monospace;
+        color: #888;
+        min-width: 48px;
+        text-align: right;
+      }
+      #timer {
+        display: none;
+      }
+      #timer.visible {
+        display: inline;
+      }
 
-    const nudgeRow = document.createElement('div');
-    nudgeRow.className = 'tag-ctrl-row';
-    const mins = Math.floor(tag.time / 60);
-    const secs = Math.floor(tag.time % 60);
-    nudgeRow.innerHTML = `
+      main {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      /* Notes pane */
+      #notePane {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid #1e1e1e;
+      }
+      #noteTitle {
+        background: transparent;
+        color: #fff;
+        border: none;
+        outline: none;
+        padding: 16px 16px 4px;
+        font-size: 22px;
+        font-weight: 600;
+        line-height: 1.3;
+        font-family: system-ui, sans-serif;
+        width: 100%;
+      }
+      #noteTitle::placeholder {
+        color: #444;
+      }
+      #noteArea {
+        flex: 1;
+        background: transparent;
+        color: #ddd;
+        border: none;
+        outline: none;
+        padding: 8px 16px 16px;
+        font-size: 14px;
+        line-height: 1.7;
+        resize: none;
+        font-family: system-ui, sans-serif;
+      }
+      #noteArea::placeholder {
+        color: #444;
+      }
+
+      /* Tags pane */
+      #tagPane {
+        width: 220px;
+        display: flex;
+        flex-direction: column;
+      }
+      #tagPane h2 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #555;
+        padding: 14px 14px 8px;
+      }
+      #tagList {
+        flex: 1;
+        overflow-y: auto;
+      }
+      .tag-item {
+        padding: 9px 14px;
+        border-left: 3px solid transparent;
+        transition: background 0.1s;
+        position: relative;
+        cursor: pointer;
+      }
+      .tag-item:hover {
+        background: #1a1a1a;
+      }
+      .tag-item.active {
+        border-left-color: #44aaff;
+        background: #111a22;
+      }
+      .tag-item.pin {
+        border-left-color: #ff8800;
+      }
+      .tag-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .tag-header-left {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+        min-width: 0;
+      }
+      .tag-name {
+        font-size: 13px;
+        color: #cde0f0;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tag-name.unnamed {
+        color: #ff8800;
+        font-style: italic;
+      }
+      .tag-time {
+        font-size: 11px;
+        color: #555;
+        font-family: monospace;
+      }
+
+      /* Tag control panel (expandable) */
+      .tag-controls {
+        display: none;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #222;
+      }
+      .tag-item.expanded .tag-controls {
+        display: block;
+      }
+      .tag-ctrl-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 6px;
+        flex-wrap: wrap;
+      }
+      .tag-ctrl-row:last-child {
+        margin-bottom: 0;
+      }
+      .tag-jump-btn {
+        font-size: 11px;
+        padding: 3px 8px;
+        background: #1a2a3a;
+        color: #44aaff;
+        border: 1px solid #2a3a4a;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      .tag-jump-btn:hover {
+        background: #2a3a5a;
+      }
+      .nudge-btn {
+        font-size: 9px;
+        padding: 2px 5px;
+        background: #222;
+        color: #888;
+        border: 1px solid #333;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      .nudge-btn:hover {
+        background: #333;
+        color: #ccc;
+      }
+      .time-input {
+        font-size: 10px;
+        width: 50px;
+        background: #111;
+        color: #aaf;
+        border: 1px solid #333;
+        border-radius: 3px;
+        padding: 2px 4px;
+        font-family: monospace;
+        text-align: center;
+      }
+      .tag-ctrl-label {
+        font-size: 9px;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      /* Pin name input */
+      .pin-name-input {
+        font-size: 12px;
+        width: 100%;
+        background: #111;
+        color: #ff8800;
+        border: 1px solid #442200;
+        border-radius: 3px;
+        padding: 4px 6px;
+        margin-top: 0;
+        outline: none;
+      }
+      .pin-name-input:focus {
+        border-color: #ff8800;
+      }
+
+      /* Audio bar */
+      #audioBar {
+        padding: 10px 16px;
+        background: #111;
+        border-top: 1px solid #1e1e1e;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      #playBtn {
+        background: none;
+        color: #44aaff;
+        font-size: 18px;
+        padding: 4px 8px;
+        min-width: 32px;
+        border: none;
+      }
+      #playBtn:disabled {
+        color: #333;
+      }
+      #seekBar {
+        flex: 1;
+        accent-color: #44aaff;
+        height: 3px;
+        cursor: pointer;
+      }
+
+      #hint {
+        padding: 10px 16px;
+        font-size: 11px;
+        color: #444;
+        border-top: 1px solid #1a1a1a;
+      }
+
+      /* Save bar (appears when edits detected on loaded session) */
+      #saveBar {
+        display: none;
+        padding: 8px 16px;
+        background: #1a1a0a;
+        border-top: 1px solid #333a20;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      #saveBar.visible {
+        display: flex;
+      }
+      #saveBar span {
+        flex: 1;
+        font-size: 12px;
+        color: #aa8;
+      }
+      .save-btn {
+        background: #2a3a1a;
+        color: #ad3;
+        border: 1px solid #3a4a2a;
+        font-size: 12px;
+        padding: 5px 12px;
+      }
+      .save-btn:hover {
+        background: #334422;
+      }
+      .save-new-btn {
+        background: #1a2a3a;
+        color: #6af;
+        border: 1px solid #2a3a4a;
+        font-size: 12px;
+        padding: 5px 12px;
+      }
+      .save-new-btn:hover {
+        background: #223344;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a
+        href="/"
+        onclick="
+          event.preventDefault();
+          resetToNew();
+        "
+        id="logo"
+        title="New recording">
+        <svg width="32" height="32" viewBox="0 0 64 64" fill="none">
+          <!-- Flat open book (bird's eye, pages spread wide) -->
+          <path
+            d="M32 42 C32 42 22 40 6 36 L6 44 C22 48 32 50 32 50 C32 50 42 48 58 44 L58 36 C42 40 32 42 32 42Z"
+            stroke="#9dcfff"
+            stroke-width="2.5"
+            fill="none" />
+          <path
+            d="M32 42 C32 42 22 40 6 36 L16 30 C24 33 32 34 32 34 C32 34 40 33 48 30 L58 36 C42 40 32 42 32 42Z"
+            stroke="#9dcfff"
+            stroke-width="2"
+            fill="none" />
+          <line x1="32" y1="34" x2="32" y2="50" stroke="#9dcfff" stroke-width="1.5" />
+          <!-- Sound waves pointing up (wifi-style arcs) -->
+          <path
+            d="M26 24 Q32 20 38 24"
+            stroke="#44aaff"
+            stroke-width="1.8"
+            fill="none"
+            stroke-linecap="round"
+            opacity="0.9" />
+          <path
+            d="M22 18 Q32 12 42 18"
+            stroke="#44aaff"
+            stroke-width="1.8"
+            fill="none"
+            stroke-linecap="round"
+            opacity="0.6" />
+          <path
+            d="M18 12 Q32 4 46 12"
+            stroke="#44aaff"
+            stroke-width="1.8"
+            fill="none"
+            stroke-linecap="round"
+            opacity="0.35" />
+        </svg>
+      </a>
+      <h1 style="font-family: 'Aref Ruqaa', serif; font-size: 22px">سَجِّلْ</h1>
+      <span id="status">idle</span>
+      <div class="controls">
+        <button id="recBtn" onclick="toggleRecord()">⏺ Record</button>
+        <button
+          id="pinBtn"
+          onclick="dropPin()"
+          title="Pin this moment (Ctrl+M)"
+          style="display: none; background: #442200; color: #ff8800; border: 1px solid #663300">
+          📌 Pin
+        </button>
+        <button class="load-btn" onclick="openSessionPicker()">📂 Load</button>
+        <button
+          onclick="showOnboarding()"
+          title="How to use Sajjel"
+          style="
+            background: none;
+            border: 1px solid #333;
+            color: #888;
+            font-size: 13px;
+            padding: 4px 10px;
+            border-radius: 50%;
+            cursor: pointer;
+          ">
+          ?
+        </button>
+      </div>
+      <span class="timer" id="timer">0:00</span>
+    </header>
+
+    <main>
+      <div id="notePane">
+        <input type="text" id="noteTitle" placeholder="Session title…" />
+        <textarea
+          id="noteArea"
+          placeholder="Start typing notes…&#10;&#10;Use #Tag Name# to mark moments."></textarea>
+        <div id="hint" style="display: none">
+          Tip: type #Tag Name# to mark a moment · Press Ctrl+M or 📌 to drop a quick pin
+        </div>
+      </div>
+      <div id="tagPane">
+        <h2>Tags</h2>
+        <div id="tagList"></div>
+      </div>
+    </main>
+
+    <div id="saveBar">
+      <span>Unsaved changes</span>
+      <button class="save-btn" onclick="overwriteSession()">Overwrite</button>
+      <button class="save-new-btn" onclick="saveAsNew()">Save as new</button>
+    </div>
+
+    <div id="audioBar">
+      <button id="playBtn" onclick="togglePlay()" disabled>▶</button>
+      <input
+        type="range"
+        id="seekBar"
+        min="0"
+        max="100"
+        value="0"
+        step="0.1"
+        oninput="seekAudio(this.value)" />
+      <span class="timer" id="playTimer">0:00</span>
+      <button
+        id="replayToggle"
+        onclick="toggleReplay()"
+        title="Toggle text replay"
+        style="
+          background: none;
+          color: #44aaff;
+          font-size: 11px;
+          padding: 4px 8px;
+          border: 1px solid #333;
+          opacity: 0.5;
+        ">
+        Live Text
+      </button>
+    </div>
+
+    <audio id="audioEl" style="display: none"></audio>
+
+    <div id="sessionPicker" onclick="if (event.target === this) closeSessionPicker();">
+      <div id="sessionList"></div>
+    </div>
+
+    <div id="onboarding" onclick="if (event.target === this) closeOnboarding();">
+      <div class="ob-container">
+        <button class="ob-close" onclick="closeOnboarding()">&times;</button>
+        <div class="ob-slides">
+          <div class="ob-slide active" data-slide="0">
+            <img src="/onboarding/app-overview.png" alt="App overview" />
+            <h2>Welcome to Sajjel</h2>
+            <p>
+              Record audio and take synchronized notes. Your text is timestamped automatically, so
+              you can jump back to any moment later.
+            </p>
+          </div>
+          <div class="ob-slide" data-slide="1">
+            <img src="/onboarding/tagging-demo.gif" alt="Tagging demo" />
+            <h2>Record and Tag</h2>
+            <p>
+              Press Record, then type notes. Wrap any text in <code>#hash marks#</code> to create a
+              tag. Press <kbd>Ctrl+M</kbd> or the pin button to drop a quick unnamed marker.
+            </p>
+          </div>
+          <div class="ob-slide" data-slide="2">
+            <img src="/onboarding/live-text-replay.gif" alt="Live text replay" />
+            <h2>Replay Your Session</h2>
+            <p>
+              Load a recording and press Play. Toggle <strong>Live Text</strong> to watch your notes
+              replay in sync with the audio — see exactly what you typed at each moment.
+            </p>
+          </div>
+          <div class="ob-slide" data-slide="3">
+            <img src="/onboarding/nudge-controls.png" alt="Tag controls" />
+            <h2>Navigate and Refine</h2>
+            <p>
+              Click any tag to jump to that moment. Right-click a tag to nudge its timestamp. Use
+              <kbd>Arrow</kbd> keys to scrub (hold <kbd>Shift</kbd> for 30s jumps).
+            </p>
+          </div>
+          <div class="ob-slide" data-slide="4">
+            <img src="/onboarding/session-picker.png" alt="Session picker" />
+            <h2>Everything is Saved</h2>
+            <p>
+              Notes auto-save to disk as you type. Use the <strong>Load</strong> button to browse
+              previous sessions. Click the <strong>?</strong> button anytime to see this guide
+              again.
+            </p>
+          </div>
+        </div>
+        <div class="ob-nav">
+          <button class="ob-arrow" id="obPrev" onclick="obNav(-1)">&lsaquo;</button>
+          <div class="ob-dots" id="obDots"></div>
+          <button class="ob-arrow" id="obNext" onclick="obNav(1)">&rsaquo;</button>
+        </div>
+        <label class="ob-dismiss">
+          <input type="checkbox" id="obDismissCheck" /> Don't show this again
+        </label>
+      </div>
+    </div>
+
+    <script>
+      let mediaRecorder = null;
+      let audioChunks = [];
+      let audioBlob = null;
+      let recordStart = null;
+      let recInterval = null;
+
+      // ── Edit tracking for loaded sessions ─────────────────────────────────────
+      let loadedFromDisk = false; // true if current session was loaded (not fresh recording)
+      let loadedFolder = null; // folder name of the loaded session
+      let loadedAudioUrl = null; // audio URL to link from new version
+      let originalNotes = ''; // snapshot of notes at load time
+      let originalTitle = '';
+      let originalTagsJSON = '[]';
+      let hasUnsavedEdits = false;
+      let tags = [];
+      let isRecording = false;
+      let isPlaying = false;
+      let syncInterval = null;
+      let sessionId = null;
+      let sessionCreatedAt = null;
+      let snapshots = []; // [{t, p, d, i}] — delta snapshots at 50ms
+      // t=time, p=position, d=deleted count, i=inserted text
+      // First entry is {t, text} as the baseline
+      let snapshotInterval = null;
+      let lastSnapshotText = '';
+      let replayEnabled = false;
+
+      function toTitleCase(str) {
+        return str.replace(/\b\w/g, (c) => c.toUpperCase());
+      }
+
+      // Compute a minimal delta between two strings
+      function computeDelta(oldStr, newStr) {
+        // Find common prefix
+        let start = 0;
+        while (start < oldStr.length && start < newStr.length && oldStr[start] === newStr[start])
+          start++;
+        // Find common suffix (from end, but not overlapping prefix)
+        let oldEnd = oldStr.length,
+          newEnd = newStr.length;
+        while (oldEnd > start && newEnd > start && oldStr[oldEnd - 1] === newStr[newEnd - 1]) {
+          oldEnd--;
+          newEnd--;
+        }
+        const deleted = oldEnd - start;
+        const inserted = newStr.slice(start, newEnd);
+        if (deleted === 0 && inserted === '') return null;
+        return { p: start, d: deleted, i: inserted };
+      }
+
+      // Reconstruct text at a given time from delta snapshots
+      function reconstructAtTime(snaps, targetTime) {
+        if (!snaps || snaps.length === 0) return '';
+        // Legacy format: [{time, text}] — full snapshots
+        if (snaps[0].time !== undefined) {
+          let snap = snaps[0];
+          for (let j = snaps.length - 1; j >= 0; j--) {
+            if (snaps[j].time <= targetTime) {
+              snap = snaps[j];
+              break;
+            }
+          }
+          return snap.text;
+        }
+        // Delta format: first entry is {t, text} baseline, rest are {t, p, d, i}
+        let text = snaps[0].text || '';
+        for (let j = 1; j < snaps.length; j++) {
+          if (snaps[j].t > targetTime) break;
+          const s = snaps[j];
+          text = text.slice(0, s.p) + s.i + text.slice(s.p + s.d);
+        }
+        return text;
+      }
+
+      // Get final text from snapshots
+      function snapshotsFinalText(snaps) {
+        if (!snaps || snaps.length === 0) return null;
+        if (snaps[0].time !== undefined) return snaps[snaps.length - 1].text;
+        return reconstructAtTime(snaps, Infinity);
+      }
+
+      const noteTitle = document.getElementById('noteTitle');
+      const noteArea = document.getElementById('noteArea');
+      const audioEl = document.getElementById('audioEl');
+      const tagList = document.getElementById('tagList');
+      const recBtn = document.getElementById('recBtn');
+      const playBtn = document.getElementById('playBtn');
+      const timerEl = document.getElementById('timer');
+      const statusEl = document.getElementById('status');
+      const seekBar = document.getElementById('seekBar');
+      const playTimerEl = document.getElementById('playTimer');
+
+      // ── Recording ──────────────────────────────────────────────────────────────
+
+      async function toggleRecord() {
+        if (!isRecording) await startRecord();
+        else stopRecord();
+      }
+
+      async function startRecord() {
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (err) {
+          statusEl.textContent = 'mic denied';
+          statusEl.className = 'recording';
+          alert('Microphone access denied. Please allow mic access and try again.');
+          return;
+        }
+        audioChunks = [];
+        tags = [];
+        snapshots = [];
+        lastSnapshotText = '';
+        renderTags();
+        noteTitle.value = '';
+        noteArea.value = '';
+        sessionId = Date.now().toString(36);
+        sessionCreatedAt = Date.now();
+
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+        mediaRecorder.onstop = finalizeAudio;
+        mediaRecorder.start(200);
+
+        recordStart = Date.now();
+        isRecording = true;
+        recBtn.textContent = '⏹ Stop';
+        recBtn.classList.add('recording');
+        statusEl.textContent = 'recording';
+        statusEl.className = 'recording';
+        playBtn.disabled = true;
+        document.getElementById('pinBtn').style.display = '';
+        document.getElementById('audioBar').style.display = 'none';
+        document.getElementById('hint').style.display = '';
+        timerEl.classList.add('visible');
+
+        recInterval = setInterval(() => {
+          timerEl.textContent = fmtTime((Date.now() - recordStart) / 1000);
+        }, 500);
+
+        // Delta snapshots at 50ms — store baseline then diffs only
+        lastSnapshotText = noteArea.value;
+        snapshots.push({ t: 0, text: lastSnapshotText }); // baseline
+        snapshotInterval = setInterval(() => {
+          const text = noteArea.value;
+          if (text !== lastSnapshotText) {
+            const time = (Date.now() - recordStart) / 1000;
+            const delta = computeDelta(lastSnapshotText, text);
+            if (delta) snapshots.push({ t: time, ...delta });
+            lastSnapshotText = text;
+          }
+        }, 50);
+      }
+
+      function stopRecord() {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach((t) => t.stop());
+        clearInterval(recInterval);
+        clearInterval(snapshotInterval);
+        isRecording = false;
+        recBtn.textContent = '⏺ Record';
+        recBtn.classList.remove('recording');
+        statusEl.textContent = 'idle';
+        statusEl.className = '';
+        document.getElementById('pinBtn').style.display = 'none';
+        document.getElementById('audioBar').style.display = '';
+        document.getElementById('hint').style.display = 'none';
+        timerEl.classList.remove('visible');
+      }
+
+      function finalizeAudio() {
+        audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        audioEl.src = URL.createObjectURL(audioBlob);
+        playBtn.disabled = false;
+        autoSave();
+        saveAudioToDB(sessionId, audioBlob);
+        saveToDisk();
+      }
+
+      // ── Tag detection ──────────────────────────────────────────────────────────
+
+      function onNoteInput() {
+        const text = noteArea.value;
+        const tagRe = /#([^#]+)#/g;
+        const found = [];
+        let match;
+        while ((match = tagRe.exec(text)) !== null) {
+          found.push({ name: match[1], charIndex: match.index });
+        }
+
+        // Match found tags to existing ones by POSITION (so renaming preserves timestamp)
+        const newTags = [];
+        const used = new Set();
+        for (const f of found) {
+          let bestIdx = -1,
+            bestDist = Infinity;
+          for (let i = 0; i < tags.length; i++) {
+            if (used.has(i)) continue;
+            const dist = Math.abs(tags[i].charIndex - f.charIndex);
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestIdx = i;
+            }
+          }
+          // Match if position is close enough (within 20 chars handles minor edits above)
+          if (bestIdx >= 0 && bestDist < 20) {
+            used.add(bestIdx);
+            newTags.push({ name: f.name, time: tags[bestIdx].time, charIndex: f.charIndex });
+          } else {
+            const time = isRecording && recordStart ? (Date.now() - recordStart) / 1000 : 0;
+            newTags.push({ name: f.name, time, charIndex: f.charIndex });
+          }
+        }
+
+        // Preserve pins (they aren't in the text, so keep them alongside text-based tags)
+        const pins = tags.filter((t) => t.isPin);
+        tags = [...newTags, ...pins];
+        tags.sort((a, b) => a.time - b.time);
+        renderTags();
+        checkForEdits();
+        if (!loadedFromDisk) {
+          autoSave();
+          debouncedNoteSave();
+        }
+      }
+
+      function checkForEdits() {
+        if (!loadedFromDisk) return;
+        const changed =
+          noteArea.value !== originalNotes ||
+          noteTitle.value !== originalTitle ||
+          JSON.stringify(tags) !== originalTagsJSON;
+        if (changed !== hasUnsavedEdits) {
+          hasUnsavedEdits = changed;
+          document.getElementById('saveBar').classList.toggle('visible', changed);
+        }
+      }
+
+      // Always listen for input (not just during recording)
+      noteArea.addEventListener('input', onNoteInput);
+      noteTitle.addEventListener('input', () => {
+        checkForEdits();
+        if (!loadedFromDisk) {
+          autoSave();
+          debouncedNoteSave();
+        }
+      });
+
+      // ── Playback ───────────────────────────────────────────────────────────────
+
+      function togglePlay() {
+        if (!isPlaying) startPlay();
+        else pausePlay();
+      }
+
+      function startPlay() {
+        audioEl.play();
+        isPlaying = true;
+        playBtn.textContent = '⏸';
+        statusEl.textContent = 'playing';
+        statusEl.className = 'playing';
+        seekBar.max = audioEl.duration || 100;
+
+        syncInterval = setInterval(() => {
+          // Keep seekbar max in sync (webm duration can resolve late)
+          if (audioEl.duration && isFinite(audioEl.duration)) seekBar.max = audioEl.duration;
+          const t = audioEl.currentTime;
+          seekBar.value = t;
+          playTimerEl.textContent = fmtTime(t) + ' / ' + fmtTime(audioEl.duration || 0);
+          highlightActiveTag(t);
+          replayText(t);
+        }, 200);
+      }
+
+      function pausePlay() {
+        audioEl.pause();
+        isPlaying = false;
+        playBtn.textContent = '▶';
+        statusEl.textContent = 'idle';
+        statusEl.className = '';
+        clearInterval(syncInterval);
+        // Restore full final text
+        const finalText = snapshotsFinalText(snapshots);
+        if (finalText !== null) noteArea.value = finalText;
+      }
+
+      function replayText(currentTime) {
+        if (!replayEnabled || snapshots.length === 0) return;
+        noteArea.value = reconstructAtTime(snapshots, currentTime);
+      }
+
+      function toggleReplay() {
+        replayEnabled = !replayEnabled;
+        const btn = document.getElementById('replayToggle');
+        btn.style.opacity = replayEnabled ? '1' : '0.5';
+        btn.style.borderColor = replayEnabled ? '#44aaff' : '#333';
+        if (!replayEnabled && snapshots.length > 0) {
+          // Restore full text when turning off
+          const finalText = snapshotsFinalText(snapshots);
+          if (finalText !== null) noteArea.value = finalText;
+        }
+      }
+
+      audioEl.onended = () => {
+        pausePlay();
+        playBtn.textContent = '▶';
+      };
+
+      audioEl.onloadedmetadata = () => {
+        if (audioEl.duration && isFinite(audioEl.duration)) {
+          seekBar.max = audioEl.duration;
+        } else {
+          // webm served from disk often has Infinity duration — force resolve it
+          fixWebmDuration();
+        }
+      };
+
+      audioEl.addEventListener('durationchange', () => {
+        if (audioEl.duration && isFinite(audioEl.duration)) {
+          seekBar.max = audioEl.duration;
+        }
+      });
+
+      let fixingDuration = false;
+      function fixWebmDuration() {
+        if (fixingDuration) return;
+        fixingDuration = true;
+        // Seek to a very large time to force the browser to resolve the real duration
+        const prevTime = audioEl.currentTime;
+        const onSeeked = () => {
+          audioEl.removeEventListener('seeked', onSeeked);
+          if (audioEl.duration && isFinite(audioEl.duration)) {
+            seekBar.max = audioEl.duration;
+          }
+          // Restore to where we were (or 0 if fresh load)
+          audioEl.currentTime = prevTime;
+          fixingDuration = false;
+        };
+        audioEl.addEventListener('seeked', onSeeked);
+        audioEl.currentTime = 1e10;
+      }
+
+      function seekAudio(val) {
+        if (fixingDuration) return;
+        audioEl.currentTime = parseFloat(val);
+        playTimerEl.textContent = fmtTime(audioEl.currentTime);
+        highlightActiveTag(audioEl.currentTime);
+      }
+
+      // ── Pins ──────────────────────────────────────────────────────────────────
+
+      function dropPin() {
+        if (!isRecording || !recordStart) return;
+        const time = (Date.now() - recordStart) / 1000;
+        tags.push({ name: '', time, charIndex: -1, isPin: true });
+        tags.sort((a, b) => a.time - b.time);
+        renderTags();
+        onTagsChanged();
+      }
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        // Ctrl+M / Cmd+M: drop pin
+        if ((e.ctrlKey || e.metaKey) && e.key === 'm') {
+          e.preventDefault();
+          if (isRecording) dropPin();
+          return;
+        }
+        // Arrow keys: scrub audio during playback (skip if typing in an input/textarea)
+        if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && audioEl.src && !isRecording) {
+          const active = document.activeElement;
+          if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) return;
+          e.preventDefault();
+          const skip = e.shiftKey ? 30 : 5; // shift+arrow = 30s, arrow = 5s
+          const delta = e.key === 'ArrowLeft' ? -skip : skip;
+          const newTime = Math.max(0, Math.min(audioEl.duration || 0, audioEl.currentTime + delta));
+          audioEl.currentTime = newTime;
+          seekBar.value = newTime;
+          playTimerEl.textContent = fmtTime(newTime) + ' / ' + fmtTime(audioEl.duration || 0);
+          highlightActiveTag(newTime);
+          replayText(newTime);
+        }
+      });
+
+      function namePin(index, name) {
+        if (!tags[index]) return;
+        tags[index].name = name.trim();
+        if (name.trim()) tags[index].isPin = false;
+        renderTags();
+        onTagsChanged();
+      }
+
+      function nudgeTag(index, deltaSec) {
+        if (!tags[index]) return;
+        const tag = tags[index];
+        tag.time = Math.max(0, tag.time + deltaSec);
+        tags.sort((a, b) => a.time - b.time);
+        expandedTagIndex = tags.indexOf(tag);
+        renderTags();
+        onTagsChanged();
+      }
+
+      function setTagTime(index, timeStr) {
+        const parts = timeStr.split(':');
+        if (parts.length !== 2) return;
+        const secs = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        if (isNaN(secs)) return;
+        const tag = tags[index];
+        tag.time = Math.max(0, secs);
+        tags.sort((a, b) => a.time - b.time);
+        expandedTagIndex = tags.indexOf(tag);
+        renderTags();
+        onTagsChanged();
+      }
+
+      function onTagsChanged() {
+        autoSave();
+        if (loadedFromDisk) {
+          checkForEdits();
+        } else {
+          debouncedNoteSave();
+        }
+      }
+
+      // ── Tags UI ────────────────────────────────────────────────────────────────
+
+      let expandedTagIndex = -1;
+
+      document.addEventListener('click', (e) => {
+        if (expandedTagIndex === -1) return;
+        if (e.target.closest('.tag-item')) return;
+        expandedTagIndex = -1;
+        renderTags();
+      });
+
+      function renderTags() {
+        tagList.innerHTML = '';
+        tags.forEach((tag, i) => {
+          const el = document.createElement('div');
+          el.className =
+            'tag-item' + (tag.isPin ? ' pin' : '') + (i === expandedTagIndex ? ' expanded' : '');
+          el.dataset.index = i;
+
+          // ── Header row (always visible): name + time + expand arrow ──
+          const header = document.createElement('div');
+          header.className = 'tag-header';
+          header.onclick = (e) => {
+            e.stopPropagation();
+            jumpToTag(i);
+          };
+          header.oncontextmenu = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            expandedTagIndex = expandedTagIndex === i ? -1 : i;
+            renderTags();
+            if (expandedTagIndex >= 0) {
+              const expanded = tagList.querySelector('.tag-item.expanded');
+              if (expanded) expanded.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+          };
+
+          const left = document.createElement('div');
+          left.className = 'tag-header-left';
+
+          const nameDiv = document.createElement('div');
+          nameDiv.className = 'tag-name' + (tag.isPin && !tag.name ? ' unnamed' : '');
+          const useTitle = tag.titleCase !== false; // default true
+          const displayName =
+            tag.isPin && !tag.name
+              ? '📌 Unnamed marker'
+              : useTitle
+                ? toTitleCase(tag.name)
+                : tag.name;
+          nameDiv.textContent = displayName;
+          left.appendChild(nameDiv);
+
+          const timeSpan = document.createElement('span');
+          timeSpan.className = 'tag-time';
+          timeSpan.textContent = fmtTime(tag.time);
+          left.appendChild(timeSpan);
+
+          header.appendChild(left);
+          el.appendChild(header);
+
+          // ── Expandable control panel ──
+          const controls = document.createElement('div');
+          controls.className = 'tag-controls';
+
+          // Nudge controls
+          const nudgeLabel = document.createElement('div');
+          nudgeLabel.className = 'tag-ctrl-label';
+          nudgeLabel.textContent = 'Nudge timestamp';
+          controls.appendChild(nudgeLabel);
+
+          const nudgeRow = document.createElement('div');
+          nudgeRow.className = 'tag-ctrl-row';
+          const mins = Math.floor(tag.time / 60);
+          const secs = Math.floor(tag.time % 60);
+          nudgeRow.innerHTML = `
       <button class="nudge-btn" onclick="event.stopPropagation();nudgeTag(${i},-60)">-1m</button>
       <button class="nudge-btn" onclick="event.stopPropagation();nudgeTag(${i},-30)">-30s</button>
       <button class="nudge-btn" onclick="event.stopPropagation();nudgeTag(${i},30)">+30s</button>
       <button class="nudge-btn" onclick="event.stopPropagation();nudgeTag(${i},60)">+1m</button>
-      <input class="time-input" type="text" value="${mins}:${String(secs).padStart(2,'0')}"
+      <input class="time-input" type="text" value="${mins}:${String(secs).padStart(2, '0')}"
         onclick="event.stopPropagation()"
         onkeydown="if(event.key==='Enter'){event.stopPropagation();setTagTime(${i},this.value)}"
       >
     `;
-    controls.appendChild(nudgeRow);
+          controls.appendChild(nudgeRow);
 
-    // Title case toggle
-    if (tag.name) {
-      const titleRow = document.createElement('div');
-      titleRow.className = 'tag-ctrl-row';
-      const titleBtn = document.createElement('button');
-      titleBtn.className = 'nudge-btn';
-      const isTitle = tag.titleCase !== false;
-      titleBtn.textContent = isTitle ? '✓ Title Case' : '○ Title Case';
-      titleBtn.style.opacity = isTitle ? '1' : '0.5';
-      titleBtn.onclick = (e) => {
-        e.stopPropagation();
-        tag.titleCase = !isTitle;
-        renderTags();
-        onTagsChanged();
-      };
-      titleRow.appendChild(titleBtn);
-      controls.appendChild(titleRow);
-    }
+          // Title case toggle
+          if (tag.name) {
+            const titleRow = document.createElement('div');
+            titleRow.className = 'tag-ctrl-row';
+            const titleBtn = document.createElement('button');
+            titleBtn.className = 'nudge-btn';
+            const isTitle = tag.titleCase !== false;
+            titleBtn.textContent = isTitle ? '✓ Title Case' : '○ Title Case';
+            titleBtn.style.opacity = isTitle ? '1' : '0.5';
+            titleBtn.onclick = (e) => {
+              e.stopPropagation();
+              tag.titleCase = !isTitle;
+              renderTags();
+              onTagsChanged();
+            };
+            titleRow.appendChild(titleBtn);
+            controls.appendChild(titleRow);
+          }
 
-    // Pin naming (only for unnamed pins)
-    if (tag.isPin && !tag.name) {
-      const nameInput = document.createElement('input');
-      nameInput.type = 'text';
-      nameInput.className = 'pin-name-input';
-      nameInput.placeholder = 'Name this marker…';
-      nameInput.onclick = (e) => e.stopPropagation();
-      nameInput.onkeydown = (e) => {
-        if (e.key === 'Enter' && nameInput.value.trim()) {
-          namePin(i, nameInput.value);
+          // Pin naming (only for unnamed pins)
+          if (tag.isPin && !tag.name) {
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.className = 'pin-name-input';
+            nameInput.placeholder = 'Name this marker…';
+            nameInput.onclick = (e) => e.stopPropagation();
+            nameInput.onkeydown = (e) => {
+              if (e.key === 'Enter' && nameInput.value.trim()) {
+                namePin(i, nameInput.value);
+              }
+            };
+            nameInput.onblur = () => {
+              if (nameInput.value.trim()) namePin(i, nameInput.value);
+            };
+            controls.appendChild(nameInput);
+          }
+
+          el.appendChild(controls);
+          tagList.appendChild(el);
+        });
+      }
+
+      function jumpToTag(i) {
+        const tag = tags[i];
+        if (!tag) return;
+        if (audioEl.src) {
+          audioEl.currentTime = tag.time;
+          seekBar.value = tag.time;
+          playTimerEl.textContent = fmtTime(tag.time);
+          if (!isPlaying) startPlay();
         }
-      };
-      nameInput.onblur = () => {
-        if (nameInput.value.trim()) namePin(i, nameInput.value);
-      };
-      controls.appendChild(nameInput);
-    }
+        scrollNotesToChar(tag.charIndex);
+        highlightActiveTag(tag.time);
+      }
 
-    el.appendChild(controls);
-    tagList.appendChild(el);
-  });
-}
+      function highlightActiveTag(currentTime) {
+        let active = -1;
+        for (let i = 0; i < tags.length; i++) {
+          if (tags[i].time <= currentTime + 0.3) active = i;
+        }
+        document.querySelectorAll('.tag-item').forEach((el, i) => {
+          el.classList.toggle('active', i === active);
+        });
+      }
 
-function jumpToTag(i) {
-  const tag = tags[i];
-  if (!tag) return;
-  if (audioEl.src) {
-    audioEl.currentTime = tag.time;
-    seekBar.value = tag.time;
-    playTimerEl.textContent = fmtTime(tag.time);
-    if (!isPlaying) startPlay();
-  }
-  scrollNotesToChar(tag.charIndex);
-  highlightActiveTag(tag.time);
-}
+      function scrollNotesToChar(charIndex) {
+        const total = noteArea.value.length;
+        if (total === 0) return;
+        const fraction = charIndex / total;
+        noteArea.scrollTop = fraction * (noteArea.scrollHeight - noteArea.clientHeight);
+      }
 
-function highlightActiveTag(currentTime) {
-  let active = -1;
-  for (let i = 0; i < tags.length; i++) {
-    if (tags[i].time <= currentTime + 0.3) active = i;
-  }
-  document.querySelectorAll('.tag-item').forEach((el, i) => {
-    el.classList.toggle('active', i === active);
-  });
-}
+      // ── Utils ──────────────────────────────────────────────────────────────────
 
-function scrollNotesToChar(charIndex) {
-  const total = noteArea.value.length;
-  if (total === 0) return;
-  const fraction = charIndex / total;
-  noteArea.scrollTop = fraction * (noteArea.scrollHeight - noteArea.clientHeight);
-}
+      function fmtTime(s) {
+        if (!s || !isFinite(s)) return '—:——';
+        const m = Math.floor(s / 60);
+        const sec = Math.floor(s % 60);
+        return `${m}:${String(sec).padStart(2, '0')}`;
+      }
 
-// ── Utils ──────────────────────────────────────────────────────────────────
+      // ── Save to disk via server ────────────────────────────────────────────────
 
-function fmtTime(s) {
-  if (!s || !isFinite(s)) return '—:——';
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60);
-  return `${m}:${String(sec).padStart(2, '0')}`;
-}
+      let notesSaveTimer = null;
 
-// ── Save to disk via server ────────────────────────────────────────────────
+      function saveToDisk() {
+        if (!sessionId) return;
+        // Save audio
+        if (audioBlob) {
+          fetch('/api/save-audio', {
+            method: 'POST',
+            headers: { 'X-Session-Id': sessionId, 'X-Title': noteTitle.value || 'untitled' },
+            body: audioBlob,
+          }).catch(() => {});
+        }
+        saveNotesToDisk();
+      }
 
-let notesSaveTimer = null;
+      function saveNotesToDisk() {
+        if (!sessionId) return;
+        const text = noteArea.value;
+        if (!text.trim()) return;
+        fetch('/api/save-notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId,
+            title: noteTitle.value,
+            notes: text,
+            tags,
+            snapshots,
+            createdAt: sessionCreatedAt,
+          }),
+        }).catch(() => {});
+      }
 
-function saveToDisk() {
-  if (!sessionId) return;
-  // Save audio
-  if (audioBlob) {
-    fetch('/api/save-audio', {
-      method: 'POST',
-      headers: { 'X-Session-Id': sessionId, 'X-Title': noteTitle.value || 'untitled' },
-      body: audioBlob,
-    }).catch(() => {});
-  }
-  saveNotesToDisk();
-}
+      // Debounced notes save — writes to disk 2s after you stop typing
+      function debouncedNoteSave() {
+        if (!sessionId) return;
+        clearTimeout(notesSaveTimer);
+        notesSaveTimer = setTimeout(saveNotesToDisk, 2000);
+      }
 
-function saveNotesToDisk() {
-  if (!sessionId) return;
-  const text = noteArea.value;
-  if (!text.trim()) return;
-  fetch('/api/save-notes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, title: noteTitle.value, notes: text, tags, snapshots, createdAt: sessionCreatedAt }),
-  }).catch(() => {});
-}
+      // ── Autosave (localStorage for notes/tags, IndexedDB for audio) ───────────
 
-// Debounced notes save — writes to disk 2s after you stop typing
-function debouncedNoteSave() {
-  if (!sessionId) return;
-  clearTimeout(notesSaveTimer);
-  notesSaveTimer = setTimeout(saveNotesToDisk, 2000);
-}
+      function autoSave() {
+        if (!sessionId) return;
+        const data = {
+          sessionId,
+          title: noteTitle.value,
+          notes: noteArea.value,
+          tags,
+          snapshots,
+          savedAt: Date.now(),
+        };
+        localStorage.setItem('vn_current', JSON.stringify(data));
+      }
 
-// ── Autosave (localStorage for notes/tags, IndexedDB for audio) ───────────
+      function openDB() {
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open('VoiceNotesDB', 1);
+          req.onupgradeneeded = () => req.result.createObjectStore('audio');
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
 
-function autoSave() {
-  if (!sessionId) return;
-  const data = { sessionId, title: noteTitle.value, notes: noteArea.value, tags, snapshots, savedAt: Date.now() };
-  localStorage.setItem('vn_current', JSON.stringify(data));
-}
+      async function saveAudioToDB(id, blob) {
+        const db = await openDB();
+        const tx = db.transaction('audio', 'readwrite');
+        tx.objectStore('audio').put(blob, id);
+      }
 
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open('VoiceNotesDB', 1);
-    req.onupgradeneeded = () => req.result.createObjectStore('audio');
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
+      async function loadAudioFromDB(id) {
+        const db = await openDB();
+        return new Promise((resolve) => {
+          const tx = db.transaction('audio', 'readonly');
+          const req = tx.objectStore('audio').get(id);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+      }
 
-async function saveAudioToDB(id, blob) {
-  const db = await openDB();
-  const tx = db.transaction('audio', 'readwrite');
-  tx.objectStore('audio').put(blob, id);
-}
+      // ── Restore last session on page load ─────────────────────────────────────
 
-async function loadAudioFromDB(id) {
-  const db = await openDB();
-  return new Promise((resolve) => {
-    const tx = db.transaction('audio', 'readonly');
-    const req = tx.objectStore('audio').get(id);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => resolve(null);
-  });
-}
+      // Home page (/) starts clean. Use 📂 Load or /recording/... URL to load a session.
 
-// ── Restore last session on page load ─────────────────────────────────────
+      // ── Session picker (load previous recordings) ────────────────────────────
 
-// Home page (/) starts clean. Use 📂 Load or /recording/... URL to load a session.
+      async function openSessionPicker() {
+        const picker = document.getElementById('sessionPicker');
+        const list = document.getElementById('sessionList');
+        list.innerHTML = '<h3>Loading...</h3>';
+        picker.classList.add('open');
 
-// ── Session picker (load previous recordings) ────────────────────────────
+        try {
+          const res = await fetch('/api/recordings');
+          const sessions = await res.json();
 
-async function openSessionPicker() {
-  const picker = document.getElementById('sessionPicker');
-  const list = document.getElementById('sessionList');
-  list.innerHTML = '<h3>Loading...</h3>';
-  picker.classList.add('open');
+          if (sessions.length === 0) {
+            list.innerHTML = '<h3>No recordings found</h3>';
+            return;
+          }
 
-  try {
-    const res = await fetch('/api/recordings');
-    const sessions = await res.json();
-
-    if (sessions.length === 0) {
-      list.innerHTML = '<h3>No recordings found</h3>';
-      return;
-    }
-
-    list.innerHTML = '<h3>Previous Sessions</h3>';
-    sessions.forEach(s => {
-      const el = document.createElement('div');
-      el.className = 'session-item';
-      const dateStr = s.createdAt ? new Date(s.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '';
-      el.innerHTML = `
+          list.innerHTML = '<h3>Previous Sessions</h3>';
+          sessions.forEach((s) => {
+            const el = document.createElement('div');
+            el.className = 'session-item';
+            const dateStr = s.createdAt
+              ? new Date(s.createdAt).toLocaleString(undefined, {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                })
+              : '';
+            el.innerHTML = `
         <div class="s-title">${s.title || s.folder}</div>
         <div class="s-meta">${dateStr} ${s.hasAudio ? '<span class="s-audio">● audio</span>' : ''}</div>
         <button class="s-delete">Delete</button>
       `;
-      el.onclick = () => loadSession(s.folder);
-      el.querySelector('.s-delete').onclick = async (e) => {
-        e.stopPropagation();
-        if (!confirm(`Delete "${s.title || s.folder}"? This cannot be undone.`)) return;
-        try {
-          await fetch('/api/delete/' + s.folder, { method: 'POST' });
-          el.remove();
-        } catch(err) { alert('Delete failed'); }
-      };
-      list.appendChild(el);
-    });
-  } catch (e) {
-    list.innerHTML = '<h3>Server not running</h3>';
-  }
-}
-
-function closeSessionPicker() {
-  document.getElementById('sessionPicker').classList.remove('open');
-}
-
-async function loadSession(folder, pushState = true) {
-  closeSessionPicker();
-  statusEl.textContent = 'loading...';
-
-  try {
-    const res = await fetch(`/api/recording/${folder}`);
-    const data = await res.json();
-
-    if (isPlaying) pausePlay();
-
-    sessionId = data.sessionId || folder;
-    sessionCreatedAt = data.createdAt || Date.now();
-    noteTitle.value = data.title || '';
-    noteArea.value = data.notes || '';
-    tags = data.tags || [];
-    tags.sort((a, b) => a.time - b.time);
-    snapshots = data.snapshots || [];
-    currentFolder = folder;
-    renderTags();
-
-    // Edit tracking
-    loadedFromDisk = true;
-    loadedFolder = folder;
-    originalNotes = data.notes || '';
-    originalTitle = data.title || '';
-    originalTagsJSON = JSON.stringify(tags);
-    hasUnsavedEdits = false;
-    document.getElementById('saveBar').classList.remove('visible');
-
-    if (data.audioUrl) {
-      audioEl.src = data.audioUrl;
-      loadedAudioUrl = data.audioUrl;
-      audioBlob = null;
-      playBtn.disabled = false;
-    } else {
-      const blob = await loadAudioFromDB(sessionId);
-      if (blob) {
-        audioBlob = blob;
-        audioEl.src = URL.createObjectURL(blob);
-        playBtn.disabled = false;
-      } else {
-        audioEl.src = '';
-        playBtn.disabled = true;
+            el.onclick = () => loadSession(s.folder);
+            el.querySelector('.s-delete').onclick = async (e) => {
+              e.stopPropagation();
+              if (!confirm(`Delete "${s.title || s.folder}"? This cannot be undone.`)) return;
+              try {
+                await fetch('/api/delete/' + s.folder, { method: 'POST' });
+                el.remove();
+              } catch (err) {
+                alert('Delete failed');
+              }
+            };
+            list.appendChild(el);
+          });
+        } catch (e) {
+          list.innerHTML = '<h3>Server not running</h3>';
+        }
       }
-    }
 
-    // Update URL
-    if (pushState) history.pushState({ folder }, '', `/recording/${folder}`);
-    document.title = `${data.title || 'Voice Notes'}`;
+      function closeSessionPicker() {
+        document.getElementById('sessionPicker').classList.remove('open');
+      }
 
-    autoSave();
-    statusEl.textContent = 'loaded';
-    setTimeout(() => { statusEl.textContent = 'idle'; statusEl.className = ''; }, 1500);
-  } catch (e) {
-    statusEl.textContent = 'load failed';
-    setTimeout(() => { statusEl.textContent = 'idle'; statusEl.className = ''; }, 2000);
-  }
-}
+      async function loadSession(folder, pushState = true) {
+        closeSessionPicker();
+        statusEl.textContent = 'loading...';
 
-// ── URL routing ───────────────────────────────────────────────────────────
+        try {
+          const res = await fetch(`/api/recording/${folder}`);
+          const data = await res.json();
 
-let currentFolder = null;
+          if (isPlaying) pausePlay();
 
-function handleRoute() {
-  const path = window.location.pathname;
-  const match = path.match(/^\/recording\/(.+)$/);
-  if (match) {
-    loadSession(match[1], false);
-  }
-}
+          sessionId = data.sessionId || folder;
+          sessionCreatedAt = data.createdAt || Date.now();
+          noteTitle.value = data.title || '';
+          noteArea.value = data.notes || '';
+          tags = data.tags || [];
+          tags.sort((a, b) => a.time - b.time);
+          snapshots = data.snapshots || [];
+          currentFolder = folder;
+          renderTags();
 
-// Handle browser back/forward
-window.addEventListener('popstate', (e) => {
-  if (e.state && e.state.folder) {
-    loadSession(e.state.folder, false);
-  } else {
-    // Going back to new recording view
-    resetToNew();
-  }
-});
+          // Edit tracking
+          loadedFromDisk = true;
+          loadedFolder = folder;
+          originalNotes = data.notes || '';
+          originalTitle = data.title || '';
+          originalTagsJSON = JSON.stringify(tags);
+          hasUnsavedEdits = false;
+          document.getElementById('saveBar').classList.remove('visible');
 
-function resetToNew() {
-  if (hasUnsavedEdits && !confirm('You have unsaved changes. Discard them?')) return;
-  if (isPlaying) pausePlay();
-  sessionId = null;
-  currentFolder = null;
-  loadedFromDisk = false;
-  loadedFolder = null;
-  loadedAudioUrl = null;
-  hasUnsavedEdits = false;
-  document.getElementById('saveBar').classList.remove('visible');
-  noteTitle.value = '';
-  noteArea.value = '';
-  tags = [];
-  snapshots = [];
-  audioBlob = null;
-  audioEl.src = '';
-  renderTags();
-  playBtn.disabled = true;
-  document.title = 'Sajjel';
-  history.pushState(null, '', '/');
-}
+          if (data.audioUrl) {
+            audioEl.src = data.audioUrl;
+            loadedAudioUrl = data.audioUrl;
+            audioBlob = null;
+            playBtn.disabled = false;
+          } else {
+            const blob = await loadAudioFromDB(sessionId);
+            if (blob) {
+              audioBlob = blob;
+              audioEl.src = URL.createObjectURL(blob);
+              playBtn.disabled = false;
+            } else {
+              audioEl.src = '';
+              playBtn.disabled = true;
+            }
+          }
 
-// ── Overwrite / Save as new ───────────────────────────────────────────────
+          // Update URL
+          if (pushState) history.pushState({ folder }, '', `/recording/${folder}`);
+          document.title = `${data.title || 'Voice Notes'}`;
 
-function overwriteSession() {
-  if (!loadedFolder) return;
-  fetch('/api/save-notes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId, title: noteTitle.value, notes: noteArea.value,
-      tags, snapshots, createdAt: sessionCreatedAt, folder: loadedFolder
-    }),
-  }).then(() => {
-    originalNotes = noteArea.value;
-    originalTitle = noteTitle.value;
-    originalTagsJSON = JSON.stringify(tags);
-    hasUnsavedEdits = false;
-    document.getElementById('saveBar').classList.remove('visible');
-    statusEl.textContent = 'saved';
-    setTimeout(() => { statusEl.textContent = 'idle'; statusEl.className = ''; }, 1500);
-  }).catch(() => {
-    statusEl.textContent = 'save failed';
-  });
-}
+          autoSave();
+          statusEl.textContent = 'loaded';
+          setTimeout(() => {
+            statusEl.textContent = 'idle';
+            statusEl.className = '';
+          }, 1500);
+        } catch (e) {
+          statusEl.textContent = 'load failed';
+          setTimeout(() => {
+            statusEl.textContent = 'idle';
+            statusEl.className = '';
+          }, 2000);
+        }
+      }
 
-function saveAsNew() {
-  if (!loadedFolder) return;
-  const newSessionId = Date.now().toString(36);
-  fetch('/api/save-notes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: newSessionId, title: noteTitle.value, notes: noteArea.value,
-      tags, snapshots, createdAt: Date.now(),
-      linkedAudio: loadedFolder  // server will symlink/copy the audio reference
-    }),
-  }).then(async (res) => {
-    const result = await res.json();
-    sessionId = newSessionId;
-    loadedFromDisk = true;
-    originalNotes = noteArea.value;
-    originalTitle = noteTitle.value;
-    originalTagsJSON = JSON.stringify(tags);
-    hasUnsavedEdits = false;
-    document.getElementById('saveBar').classList.remove('visible');
-    statusEl.textContent = 'saved as new';
-    setTimeout(() => { statusEl.textContent = 'idle'; statusEl.className = ''; }, 1500);
-  }).catch(() => {
-    statusEl.textContent = 'save failed';
-  });
-}
+      // ── URL routing ───────────────────────────────────────────────────────────
 
-// Warn before leaving with unsaved edits
-window.addEventListener('beforeunload', (e) => {
-  if (hasUnsavedEdits) {
-    e.preventDefault();
-    e.returnValue = '';
-  }
-});
+      let currentFolder = null;
 
-// ── Onboarding ───────────────────────────────────────────────────────────
+      function handleRoute() {
+        const path = window.location.pathname;
+        const match = path.match(/^\/recording\/(.+)$/);
+        if (match) {
+          loadSession(match[1], false);
+        }
+      }
 
-let obSlide = 0;
-const obTotal = 5;
+      // Handle browser back/forward
+      window.addEventListener('popstate', (e) => {
+        if (e.state && e.state.folder) {
+          loadSession(e.state.folder, false);
+        } else {
+          // Going back to new recording view
+          resetToNew();
+        }
+      });
 
-function showOnboarding() {
-  obSlide = 0;
-  document.getElementById('onboarding').classList.add('open');
-  renderOb();
-}
+      function resetToNew() {
+        if (hasUnsavedEdits && !confirm('You have unsaved changes. Discard them?')) return;
+        if (isPlaying) pausePlay();
+        sessionId = null;
+        currentFolder = null;
+        loadedFromDisk = false;
+        loadedFolder = null;
+        loadedAudioUrl = null;
+        hasUnsavedEdits = false;
+        document.getElementById('saveBar').classList.remove('visible');
+        noteTitle.value = '';
+        noteArea.value = '';
+        tags = [];
+        snapshots = [];
+        audioBlob = null;
+        audioEl.src = '';
+        renderTags();
+        playBtn.disabled = true;
+        document.title = 'Sajjel';
+        history.pushState(null, '', '/');
+      }
 
-function closeOnboarding() {
-  document.getElementById('onboarding').classList.remove('open');
-  if (document.getElementById('obDismissCheck').checked) {
-    localStorage.setItem('vn_onboarding_dismissed', '1');
-  }
-}
+      // ── Overwrite / Save as new ───────────────────────────────────────────────
 
-function renderOb() {
-  document.querySelectorAll('.ob-slide').forEach((el, i) => el.classList.toggle('active', i === obSlide));
-  const dots = document.getElementById('obDots');
-  dots.innerHTML = '';
-  for (let i = 0; i < obTotal; i++) {
-    const d = document.createElement('span');
-    d.className = 'ob-dot' + (i === obSlide ? ' active' : '');
-    d.onclick = () => { obSlide = i; renderOb(); };
-    dots.appendChild(d);
-  }
-  document.getElementById('obPrev').disabled = obSlide === 0;
-  document.getElementById('obNext').disabled = obSlide === obTotal - 1;
-}
+      function overwriteSession() {
+        if (!loadedFolder) return;
+        fetch('/api/save-notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId,
+            title: noteTitle.value,
+            notes: noteArea.value,
+            tags,
+            snapshots,
+            createdAt: sessionCreatedAt,
+            folder: loadedFolder,
+          }),
+        })
+          .then(() => {
+            originalNotes = noteArea.value;
+            originalTitle = noteTitle.value;
+            originalTagsJSON = JSON.stringify(tags);
+            hasUnsavedEdits = false;
+            document.getElementById('saveBar').classList.remove('visible');
+            statusEl.textContent = 'saved';
+            setTimeout(() => {
+              statusEl.textContent = 'idle';
+              statusEl.className = '';
+            }, 1500);
+          })
+          .catch(() => {
+            statusEl.textContent = 'save failed';
+          });
+      }
 
-function obNav(dir) {
-  obSlide = Math.max(0, Math.min(obTotal - 1, obSlide + dir));
-  renderOb();
-}
+      function saveAsNew() {
+        if (!loadedFolder) return;
+        const newSessionId = Date.now().toString(36);
+        fetch('/api/save-notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: newSessionId,
+            title: noteTitle.value,
+            notes: noteArea.value,
+            tags,
+            snapshots,
+            createdAt: Date.now(),
+            linkedAudio: loadedFolder, // server will symlink/copy the audio reference
+          }),
+        })
+          .then(async (res) => {
+            const result = await res.json();
+            sessionId = newSessionId;
+            loadedFromDisk = true;
+            originalNotes = noteArea.value;
+            originalTitle = noteTitle.value;
+            originalTagsJSON = JSON.stringify(tags);
+            hasUnsavedEdits = false;
+            document.getElementById('saveBar').classList.remove('visible');
+            statusEl.textContent = 'saved as new';
+            setTimeout(() => {
+              statusEl.textContent = 'idle';
+              statusEl.className = '';
+            }, 1500);
+          })
+          .catch(() => {
+            statusEl.textContent = 'save failed';
+          });
+      }
 
-document.addEventListener('keydown', (e) => {
-  if (!document.getElementById('onboarding').classList.contains('open')) return;
-  if (e.key === 'Escape') { e.preventDefault(); closeOnboarding(); }
-  if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); obNav(-1); }
-  if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); obNav(1); }
-}, true);
+      // Warn before leaving with unsaved edits
+      window.addEventListener('beforeunload', (e) => {
+        if (hasUnsavedEdits) {
+          e.preventDefault();
+          e.returnValue = '';
+        }
+      });
 
-// Route on initial page load (after restore logic)
-handleRoute();
+      // ── Onboarding ───────────────────────────────────────────────────────────
 
-// Show onboarding on first visit
-if (!localStorage.getItem('vn_onboarding_dismissed')) {
-  showOnboarding();
-}
-</script>
-</body>
+      let obSlide = 0;
+      const obTotal = 5;
+
+      function showOnboarding() {
+        obSlide = 0;
+        document.getElementById('onboarding').classList.add('open');
+        renderOb();
+      }
+
+      function closeOnboarding() {
+        document.getElementById('onboarding').classList.remove('open');
+        if (document.getElementById('obDismissCheck').checked) {
+          localStorage.setItem('vn_onboarding_dismissed', '1');
+        }
+      }
+
+      function renderOb() {
+        document
+          .querySelectorAll('.ob-slide')
+          .forEach((el, i) => el.classList.toggle('active', i === obSlide));
+        const dots = document.getElementById('obDots');
+        dots.innerHTML = '';
+        for (let i = 0; i < obTotal; i++) {
+          const d = document.createElement('span');
+          d.className = 'ob-dot' + (i === obSlide ? ' active' : '');
+          d.onclick = () => {
+            obSlide = i;
+            renderOb();
+          };
+          dots.appendChild(d);
+        }
+        document.getElementById('obPrev').disabled = obSlide === 0;
+        document.getElementById('obNext').disabled = obSlide === obTotal - 1;
+      }
+
+      function obNav(dir) {
+        obSlide = Math.max(0, Math.min(obTotal - 1, obSlide + dir));
+        renderOb();
+      }
+
+      document.addEventListener(
+        'keydown',
+        (e) => {
+          if (!document.getElementById('onboarding').classList.contains('open')) return;
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            closeOnboarding();
+          }
+          if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            e.stopPropagation();
+            obNav(-1);
+          }
+          if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            e.stopPropagation();
+            obNav(1);
+          }
+        },
+        true
+      );
+
+      // Route on initial page load (after restore logic)
+      handleRoute();
+
+      // Show onboarding on first visit
+      if (!localStorage.getItem('vn_onboarding_dismissed')) {
+        showOnboarding();
+      }
+    </script>
+  </body>
 </html>

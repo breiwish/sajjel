@@ -1,10 +1,13 @@
 <script>
+  import { onMount } from "svelte";
   import Recorder from "./lib/Recorder.svelte";
   import NoteEditor from "./lib/NoteEditor.svelte";
   import TagSidebar from "./lib/TagSidebar.svelte";
   import Player from "./lib/Player.svelte";
   import Transcript from "./lib/Transcript.svelte";
   import LectureList from "./lib/LectureList.svelte";
+  import IconButton from "./lib/IconButton.svelte";
+  import Icon from "./lib/Icon.svelte";
   import { createLecture, getLecture, startTranscription, getTranscript, audioUrl } from "./api.js";
 
   let view = $state("home");
@@ -22,6 +25,24 @@
   let transcriptData = $state(null);
   let transcriptStatus = $state("recorded");
   let pollInterval = null;
+
+  // Theme — light by default, persists in localStorage
+  let theme = $state("light");
+  onMount(() => {
+    const saved = localStorage.getItem("sajjel-theme");
+    if (saved === "dark" || saved === "light") theme = saved;
+    applyTheme();
+  });
+  function applyTheme() {
+    document.documentElement.dataset.theme = theme;
+    if (theme === "dark") document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
+  }
+  function toggleTheme() {
+    theme = theme === "light" ? "dark" : "light";
+    localStorage.setItem("sajjel-theme", theme);
+    applyTheme();
+  }
 
   function startNew() {
     view = "recording";
@@ -86,40 +107,47 @@
     pollInterval = setInterval(async () => {
       const res = await getTranscript(lecture.id);
       transcriptStatus = res.status;
-      if (res.transcript) {
-        transcriptData = res.transcript;
-      }
-      if (res.status !== "transcribing") {
-        clearInterval(pollInterval);
-      }
+      if (res.transcript) transcriptData = res.transcript;
+      if (res.status !== "transcribing") clearInterval(pollInterval);
     }, 3000);
   }
 
   function backToHome() {
     view = "home";
     if (pollInterval) clearInterval(pollInterval);
-    if (lectureListRef) lectureListRef.refresh();
   }
 </script>
 
 <div class="app">
-  <header>
-    <div class="logo" onclick={backToHome}>
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-        <!-- open book facing up, pages spread left and right -->
-        <path d="M16 24C16 24 10 22 4 23L6 10C10 9 15 10 16 12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M16 24C16 24 22 22 28 23L26 10C22 9 17 10 16 12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-        <!-- spine -->
-        <line x1="16" y1="12" x2="16" y2="24" stroke="currentColor" stroke-width="1"/>
-        <!-- sound waves emanating upward -->
-        <path d="M12 8C13.5 6 18.5 6 20 8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-        <path d="M10 5C12.5 2 19.5 2 22 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
-      </svg>
-      <span class="logo-text">Udhkur</span>
+  <header class="topbar">
+    <button class="brand" onclick={backToHome} aria-label="Sajjel home">
+      <span class="brand-mark">
+        <!-- Minimal mark: stacked sound waves through a baseline -->
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12h18"/>
+          <path d="M7 8v8"/>
+          <path d="M11 5v14"/>
+          <path d="M15 8v8"/>
+          <path d="M19 10v4"/>
+        </svg>
+      </span>
+      <span class="brand-wordmark">
+        <span class="brand-latin">Sajjel</span>
+        <span class="brand-ar" lang="ar" dir="rtl">سَجِّلْ</span>
+      </span>
+    </button>
+
+    <div class="topbar-actions">
+      {#if view !== "recording"}
+        <button class="btn btn-primary" onclick={startNew}>
+          <Icon name="plus" size={16} />
+          <span>New recording</span>
+        </button>
+      {/if}
+      <IconButton label="Toggle theme" onclick={toggleTheme}>
+        <Icon name={theme === "light" ? "moon" : "sun"} size={16} />
+      </IconButton>
     </div>
-    {#if view !== "recording"}
-      <button class="new-btn" onclick={startNew}>+ New Recording</button>
-    {/if}
   </header>
 
   {#if view === "home"}
@@ -130,12 +158,19 @@
   {:else if view === "recording"}
     <div class="toolbar">
       <Recorder bind:this={recorder} onstarted={() => {}} onstopped={onRecordStopped} />
+      <div class="toolbar-spacer"></div>
       {#if audioBlob}
-        <button class="save-btn" onclick={save}>Save Lecture</button>
+        <button class="btn btn-primary" onclick={save}>
+          <Icon name="save" size={16} />
+          <span>Save lecture</span>
+        </button>
       {/if}
-      <button class="back-btn" onclick={backToHome}>← Back</button>
+      <button class="btn btn-ghost" onclick={backToHome}>
+        <Icon name="arrow-left" size={16} />
+        <span>Back</span>
+      </button>
     </div>
-    <main>
+    <main class="workspace">
       <div class="note-pane">
         <NoteEditor
           bind:value={notes}
@@ -150,14 +185,19 @@
   {:else if view === "lecture"}
     <div class="toolbar">
       <h2 class="lecture-title">{lecture?.title || "Lecture"}</h2>
+      <div class="toolbar-spacer"></div>
       {#if transcriptStatus !== "transcribing"}
-        <button class="transcribe-btn" onclick={transcribe}>
-          {transcriptData ? "Re-transcribe" : "Transcribe"}
+        <button class="btn btn-secondary" onclick={transcribe}>
+          <Icon name="sparkles" size={16} />
+          <span>{transcriptData ? "Re-transcribe" : "Transcribe"}</span>
         </button>
       {/if}
-      <button class="back-btn" onclick={backToHome}>← Back</button>
+      <button class="btn btn-ghost" onclick={backToHome}>
+        <Icon name="arrow-left" size={16} />
+        <span>Back</span>
+      </button>
     </div>
-    <main>
+    <main class="workspace">
       <div class="note-pane">
         <NoteEditor bind:value={notes} disabled />
         <Transcript
@@ -174,39 +214,136 @@
 </div>
 
 <style>
-  .app { display: flex; flex-direction: column; height: 100vh; }
-
-  header {
-    padding: 14px 20px; border-bottom: 1px solid #222;
-    display: flex; align-items: center; gap: 12px;
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: var(--background);
+    color: var(--foreground);
   }
-  .logo {
-    display: flex; align-items: center; gap: 10px; flex: 1;
-    cursor: pointer; color: #fff;
-  }
-  .logo:hover { opacity: 0.85; }
-  .logo-text { font-size: 20px; font-weight: 600; letter-spacing: 0.5px; }
 
+  /* ── Topbar ────────────────────────────────────────────────────── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--background);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    color: var(--foreground);
+    border-radius: var(--radius-md);
+    padding: 4px 6px;
+    margin-left: -6px;
+    transition: background 150ms ease-out;
+  }
+  .brand:hover { background: var(--accent); }
+
+  .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .brand-wordmark {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    line-height: 1;
+  }
+  .brand-latin {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .brand-ar {
+    font-family: "Aref Ruqaa", serif;
+    font-size: 22px;
+    color: var(--muted-foreground);
+    font-weight: 400;
+    line-height: 1;
+  }
+
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── Toolbar (under topbar) ───────────────────────────────────── */
   .toolbar {
-    padding: 10px 20px; border-bottom: 1px solid #1e1e1e;
-    display: flex; align-items: center; gap: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
   }
-  .lecture-title { font-size: 15px; color: #ddd; flex: 1; font-weight: 500; }
+  .toolbar-spacer { flex: 1; }
+  .lecture-title {
+    font-size: var(--text-base);
+    font-weight: 600;
+    color: var(--foreground);
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
 
-  main { display: flex; flex: 1; overflow: hidden; }
-  .note-pane { flex: 1; display: flex; flex-direction: column; }
+  /* ── Workspace ─────────────────────────────────────────────────── */
+  .workspace {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+  .note-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
   .home { flex: 1; overflow-y: auto; }
 
-  button {
-    border: none; cursor: pointer; border-radius: 6px; font-size: 13px;
-    padding: 7px 14px; transition: background 0.15s;
+  /* ── Buttons (shadcn parity) ──────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 1;
+    border: 1px solid transparent;
+    transition: background 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
+    white-space: nowrap;
   }
-  .new-btn { background: #44aaff; color: #fff; }
-  .new-btn:hover { background: #2299ee; }
-  .save-btn { background: #1a2a1a; color: #6c6; border: 1px solid #2a3a2a; }
-  .save-btn:hover { background: #223322; }
-  .transcribe-btn { background: #2a1a2a; color: #c6c; border: 1px solid #3a2a3a; }
-  .transcribe-btn:hover { background: #332233; }
-  .back-btn { background: #2a2a2a; color: #888; }
-  .back-btn:hover { background: #333; }
+  .btn-primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: var(--shadow-xs);
+  }
+  .btn-primary:hover { background: color-mix(in oklch, var(--primary) 90%, black); }
+  .btn-secondary {
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    border-color: var(--border);
+    box-shadow: var(--shadow-xs);
+  }
+  .btn-secondary:hover { background: var(--accent); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted-foreground);
+  }
+  .btn-ghost:hover { background: var(--accent); color: var(--accent-foreground); }
 </style>

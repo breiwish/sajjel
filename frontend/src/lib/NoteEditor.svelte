@@ -32,22 +32,16 @@
       .replace(/>/g, "&gt;")
       .replace(/#([^#\n]+)#/g, '<mark>$&</mark>')
       .replace(/\n/g, "<br>");
-    // Trailing newline needs a space so backdrop height matches
     if (text.endsWith("\n")) html += "&nbsp;";
     return html;
   }
 
   function onScroll() {
-    if (backdropEl && textareaEl) {
-      backdropEl.scrollTop = textareaEl.scrollTop;
-    }
+    if (backdropEl && textareaEl) backdropEl.scrollTop = textareaEl.scrollTop;
   }
 
   $effect(() => {
-    // Reactively update backdrop whenever value changes
-    if (backdropEl) {
-      backdropEl.innerHTML = highlightedHtml(value);
-    }
+    if (backdropEl) backdropEl.innerHTML = highlightedHtml(value);
   });
 </script>
 
@@ -66,37 +60,48 @@
 
 <style>
   .editor-wrap {
-    flex: 1; position: relative; overflow: hidden;
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--background);
   }
   .backdrop, textarea {
-    position: absolute; inset: 0;
-    padding: 16px; font-size: 14px; line-height: 1.7;
-    font-family: system-ui, sans-serif;
-    white-space: pre-wrap; word-wrap: break-word;
-    overflow-y: auto; overflow-x: hidden;
-    width: 100%; height: 100%;
-    border: none; margin: 0;
+    position: absolute;
+    inset: 0;
+    padding: 28px 32px;
+    font-size: var(--text-base);
+    line-height: 1.75;
+    font-family: var(--font-sans);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
+    height: 100%;
+    border: none;
+    margin: 0;
   }
   .backdrop {
-    color: #ddd;
+    color: var(--foreground);
     pointer-events: none;
     z-index: 0;
   }
   .backdrop :global(mark) {
-    background: rgba(68, 170, 255, 0.2);
-    color: #9dcfff;
-    border-radius: 3px;
-    padding: 1px 2px;
+    background: color-mix(in oklch, var(--ring) 22%, transparent);
+    color: var(--foreground);
+    border-radius: var(--radius-sm);
+    padding: 1px 4px;
+    font-weight: 500;
+    box-shadow: inset 0 -1px 0 color-mix(in oklch, var(--ring) 50%, transparent);
   }
   textarea {
     color: transparent;
-    caret-color: #ddd;
+    caret-color: var(--foreground);
     background: transparent;
     outline: none;
     resize: none;
     z-index: 1;
   }
-  textarea::placeholder {
-    color: #444;
-  }
+  textarea::placeholder { color: var(--muted-foreground); opacity: 0.6; }
+  textarea:disabled { cursor: default; }
 </style>

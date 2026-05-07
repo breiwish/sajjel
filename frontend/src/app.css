@@ -1,3 +1,67 @@
+/* Sajjel — shadcn/ui (new-york-v4 earth) styling */
+@import url("./tokens.css");
+
+@font-face {
+  font-family: "Aref Ruqaa";
+  src: url("/aref-ruqaa.ttf") format("truetype");
+  font-display: swap;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; height: 100vh; overflow: hidden; }
+
+html, body {
+  height: 100vh;
+  overflow: hidden;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
 #app { height: 100vh; }
+
+/* Native form chrome — neutralized */
+button,
+input,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+button {
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+a { color: inherit; }
+
+/* Scrollbar — minimal, palette-tinted */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--muted-foreground) 25%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklch, var(--muted-foreground) 45%, transparent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* Focus ring — the shadcn signature */
+:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent);
+  border-color: var(--ring);
+}
+
+/* Selection */
+::selection { background: var(--selection); color: var(--selection-foreground); }

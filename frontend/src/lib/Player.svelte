@@ -1,5 +1,6 @@
 <script>
   import { onDestroy } from "svelte";
+  import Icon from "./Icon.svelte";
 
   let { src = null, fallbackDuration = 0, ontimeupdate } = $props();
 
@@ -16,7 +17,6 @@
     return `${m}:${String(sec).padStart(2, "0")}`;
   }
 
-  // Use actual duration if available, otherwise fallback from recorder
   function displayDuration() {
     if (duration && isFinite(duration) && duration > 0) return duration;
     return fallbackDuration || 0;
@@ -33,10 +33,7 @@
       isPlaying = true;
       interval = setInterval(() => {
         currentTime = audio.currentTime;
-        // WebM often only reports duration after playback starts
-        if (audio.duration && isFinite(audio.duration)) {
-          duration = audio.duration;
-        }
+        if (audio.duration && isFinite(audio.duration)) duration = audio.duration;
         ontimeupdate?.({ currentTime });
       }, 200);
     }
@@ -50,9 +47,7 @@
   }
 
   function onLoaded() {
-    if (audio.duration && isFinite(audio.duration)) {
-      duration = audio.duration;
-    }
+    if (audio.duration && isFinite(audio.duration)) duration = audio.duration;
   }
 
   function onEnded() {
@@ -73,24 +68,92 @@
 {#if src}
   <audio bind:this={audio} {src} onloadedmetadata={onLoaded} onended={onEnded}></audio>
   <div class="player">
-    <button class="play-btn" onclick={toggle}>
-      {isPlaying ? "⏸ Pause" : "▶ Play"}
+    <button
+      class="play-btn"
+      onclick={toggle}
+      aria-label={isPlaying ? "Pause" : "Play"}
+    >
+      <Icon name={isPlaying ? "pause" : "play"} size={14} strokeWidth={2.5} />
     </button>
-    <input type="range" class="seek-bar" min="0" max={displayDuration() || 100} value={currentTime} step="0.1" oninput={seek}>
-    <span class="timer">{fmtTime(currentTime)} / {fmtTime(displayDuration())}</span>
+    <span class="timer current">{fmtTime(currentTime)}</span>
+    <input
+      type="range"
+      class="seek-bar"
+      min="0"
+      max={displayDuration() || 100}
+      value={currentTime}
+      step="0.1"
+      oninput={seek}
+      aria-label="Seek"
+    >
+    <span class="timer total">{fmtTime(displayDuration())}</span>
   </div>
 {/if}
 
 <style>
   .player {
-    padding: 10px 16px; background: #111; border-top: 1px solid #1e1e1e;
-    display: flex; align-items: center; gap: 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 20px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
   }
+
   .play-btn {
-    border: none; cursor: pointer; border-radius: 6px; font-size: 13px;
-    padding: 7px 14px; background: #2a2a2a; color: #ccc;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: 1px solid transparent;
+    box-shadow: var(--shadow-xs);
+    transition: background 150ms ease-out;
   }
-  .play-btn:hover { background: #333; }
-  .seek-bar { flex: 1; accent-color: #44aaff; height: 3px; cursor: pointer; }
-  .timer { font-size: 13px; font-family: monospace; color: #888; min-width: 100px; text-align: right; }
+  .play-btn:hover {
+    background: color-mix(in oklch, var(--primary) 90%, black);
+  }
+
+  .timer {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--muted-foreground);
+    min-width: 40px;
+  }
+  .timer.current { color: var(--foreground); }
+  .timer.total { text-align: right; }
+
+  .seek-bar {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--muted);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .seek-bar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: var(--primary);
+    border: 2px solid var(--background);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+  }
+  .seek-bar::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: var(--primary);
+    border: 2px solid var(--background);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+  }
 </style>

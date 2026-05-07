@@ -1,4 +1,6 @@
 <script>
+  import Icon from "./Icon.svelte";
+
   let { tags = [], currentTime = 0, onjump } = $props();
 
   function fmtTime(s) {
@@ -16,32 +18,114 @@
   }
 </script>
 
-<div class="tag-pane">
-  <h2>Tags</h2>
+<aside class="tag-pane">
+  <div class="tag-header">
+    <Icon name="tag" size={14} />
+    <h2>Tags</h2>
+    <span class="count">{tags.length}</span>
+  </div>
   <div class="tag-list">
+    {#if tags.length === 0}
+      <p class="empty">Wrap a phrase in <code>#hashes#</code> while recording to mark a moment.</p>
+    {/if}
     {#each tags as tag, i}
-      <div
+      <button
         class="tag-item"
         class:active={i === activeIndex()}
         onclick={() => onjump?.(tag)}
       >
-        <div class="tag-name">#{tag.name}</div>
-        <div class="tag-time">{fmtTime(tag.time)}</div>
-      </div>
+        <span class="tag-name">{tag.name}</span>
+        <span class="tag-time">{fmtTime(tag.time)}</span>
+      </button>
     {/each}
   </div>
-</div>
+</aside>
 
 <style>
-  .tag-pane { width: 220px; display: flex; flex-direction: column; border-left: 1px solid #1e1e1e; }
-  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #555; padding: 14px 14px 8px; }
-  .tag-list { flex: 1; overflow-y: auto; }
-  .tag-item {
-    padding: 9px 14px; cursor: pointer; border-left: 3px solid transparent;
-    transition: background 0.1s;
+  .tag-pane {
+    width: 260px;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border);
+    background: var(--sidebar);
   }
-  .tag-item:hover { background: #1a1a1a; }
-  .tag-item.active { border-left-color: #44aaff; background: #111a22; }
-  .tag-name { font-size: 13px; color: #9dcfff; font-weight: 500; }
-  .tag-time { font-size: 11px; color: #555; font-family: monospace; margin-top: 2px; }
+  .tag-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 16px 12px;
+    color: var(--muted-foreground);
+  }
+  h2 {
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    flex: 1;
+    margin: 0;
+  }
+  .count {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--muted-foreground);
+    background: var(--muted);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+  }
+  .tag-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px 12px;
+  }
+  .empty {
+    padding: 8px;
+    color: var(--muted-foreground);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+  }
+  .empty :global(code) {
+    background: var(--muted);
+    padding: 0 4px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+  .tag-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: var(--radius-md);
+    background: transparent;
+    border: 1px solid transparent;
+    text-align: left;
+    transition: background 100ms ease-out, border-color 100ms ease-out;
+    margin-bottom: 2px;
+  }
+  .tag-item:hover {
+    background: var(--sidebar-accent);
+  }
+  .tag-item.active {
+    background: var(--sidebar-accent);
+    border-color: var(--sidebar-border);
+  }
+  .tag-name {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--sidebar-foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tag-time {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+    margin-left: 8px;
+    flex-shrink: 0;
+  }
+  .tag-item.active .tag-time { color: var(--sidebar-primary); }
 </style>

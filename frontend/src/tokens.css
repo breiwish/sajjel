@@ -1,0 +1,171 @@
+/* shadcn/ui Design System — Colors & Type
+ * Source: shadcn-ui/ui @ main, apps/v4/app/globals.css (new-york-v4 style)
+ * Palette: olive + natural earth tones (custom override).
+ * All colors expressed in oklch — perceptually uniform.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap");
+
+:root {
+  /* ── Radius ─────────────────────────────────────────────────────────── */
+  --radius: 0.625rem;          /* 10px — the canonical shadcn radius */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+
+  /* ── Palette anchors (Fab Mood olive + earth) ──────────────────────────
+   * dark-olive   #4A4632   oklch(0.34 0.04 95)
+   * light-olive  #8E8A60   oklch(0.58 0.06 100)
+   * deep-brown   #4A2218   oklch(0.27 0.07 30)
+   * dusty-rose   #D69E84   oklch(0.74 0.08 45)
+   * peach        #F1C8A4   oklch(0.85 0.07 60)
+   * cream        #FCE8C7   oklch(0.93 0.05 80)
+   */
+
+  /* ── Surfaces & content (light) ─────────────────────────────────────── */
+  --background: oklch(0.97 0.025 85);          /* warm cream */
+  --foreground: oklch(0.27 0.05 35);           /* deep brown ink */
+  --card: oklch(0.985 0.018 85);               /* a touch lighter than bg */
+  --card-foreground: oklch(0.27 0.05 35);
+  --popover: oklch(0.985 0.018 85);
+  --popover-foreground: oklch(0.27 0.05 35);
+  --surface: oklch(0.93 0.05 80);              /* peach panel */
+  --surface-foreground: oklch(0.27 0.05 35);
+
+  /* ── Brand & roles ──────────────────────────────────────────────────── */
+  --primary: oklch(0.34 0.04 95);              /* dark olive */
+  --primary-foreground: oklch(0.97 0.025 85);  /* cream */
+  --secondary: oklch(0.91 0.045 75);           /* soft peach */
+  --secondary-foreground: oklch(0.34 0.04 95);
+  --muted: oklch(0.91 0.04 78);                /* slightly desat peach */
+  --muted-foreground: oklch(0.5 0.04 70);      /* muted olive-tan */
+  --accent: oklch(0.85 0.07 60);               /* peach accent */
+  --accent-foreground: oklch(0.27 0.06 30);    /* deep brown */
+  --destructive: oklch(0.42 0.13 30);          /* earthy oxblood (deep brown-red) */
+  --destructive-foreground: oklch(0.97 0.025 85);
+
+  /* ── Lines, fields, focus ───────────────────────────────────────────── */
+  --border: oklch(0.86 0.05 70);               /* warm peach-tan hairline */
+  --input: oklch(0.86 0.05 70);
+  --ring: oklch(0.58 0.06 100);                /* light olive — focus glow */
+
+  /* ── Charts (earthy ramp: olive → rose → brown) ────────────────────── */
+  --chart-1: oklch(0.58 0.06 100);             /* light olive */
+  --chart-2: oklch(0.74 0.08 45);              /* dusty rose */
+  --chart-3: oklch(0.34 0.04 95);              /* dark olive */
+  --chart-4: oklch(0.85 0.07 60);              /* peach */
+  --chart-5: oklch(0.42 0.13 30);              /* oxblood */
+
+  /* ── Sidebar (slightly distinct surface) ────────────────────────────── */
+  --sidebar: oklch(0.94 0.04 82);              /* warm cream-peach */
+  --sidebar-foreground: oklch(0.27 0.05 35);
+  --sidebar-primary: oklch(0.34 0.04 95);
+  --sidebar-primary-foreground: oklch(0.97 0.025 85);
+  --sidebar-accent: oklch(0.88 0.06 70);       /* peach hover */
+  --sidebar-accent-foreground: oklch(0.27 0.05 35);
+  --sidebar-border: oklch(0.84 0.05 65);
+  --sidebar-ring: oklch(0.58 0.06 100);
+
+  /* ── Code blocks ────────────────────────────────────────────────────── */
+  --code: var(--surface);
+  --code-foreground: var(--surface-foreground);
+  --code-highlight: oklch(0.88 0.06 70);
+  --code-number: oklch(0.5 0.04 70);
+  --selection: oklch(0.58 0.06 100);
+  --selection-foreground: oklch(0.97 0.025 85);
+
+  /* ── Typography ─────────────────────────────────────────────────────── */
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-heading: var(--font-sans);
+
+  /* Type scale — Tailwind defaults; declared explicitly so HTML cards have them */
+  --text-xs: 0.75rem;   --text-xs-lh: 1rem;
+  --text-sm: 0.875rem;  --text-sm-lh: 1.25rem;
+  --text-base: 1rem;    --text-base-lh: 1.5rem;
+  --text-lg: 1.125rem;  --text-lg-lh: 1.75rem;
+  --text-xl: 1.25rem;   --text-xl-lh: 1.75rem;
+  --text-2xl: 1.5rem;   --text-2xl-lh: 2rem;
+  --text-3xl: 1.875rem; --text-3xl-lh: 2.25rem;
+  --text-4xl: 2.25rem;  --text-4xl-lh: 2.5rem;
+  --text-5xl: 3rem;     --text-5xl-lh: 1;
+
+  /* ── Shadows — warm-tinted to harmonize with palette ────────────────── */
+  --shadow-2xs: 0 1px rgb(74 34 24 / 0.05);
+  --shadow-xs:  0 1px 2px 0 rgb(74 34 24 / 0.06);
+  --shadow-sm:  0 1px 3px 0 rgb(74 34 24 / 0.10), 0 1px 2px -1px rgb(74 34 24 / 0.08);
+  --shadow-md:  0 4px 6px -1px rgb(74 34 24 / 0.10), 0 2px 4px -2px rgb(74 34 24 / 0.08);
+  --shadow-lg:  0 10px 15px -3px rgb(74 34 24 / 0.10), 0 4px 6px -4px rgb(74 34 24 / 0.08);
+  --shadow-xl:  0 20px 25px -5px rgb(74 34 24 / 0.10), 0 8px 10px -6px rgb(74 34 24 / 0.08);
+  --shadow-2xl: 0 25px 50px -12px rgb(74 34 24 / 0.25);
+
+  /* ── Spacing — Tailwind base 0.25rem step */
+  --spacing: 0.25rem;
+}
+
+.dark, [data-theme="dark"] {
+  --background: oklch(0.22 0.025 80);          /* deep olive-brown */
+  --foreground: oklch(0.93 0.04 80);           /* cream ink */
+  --card: oklch(0.27 0.03 85);
+  --card-foreground: oklch(0.93 0.04 80);
+  --popover: oklch(0.27 0.03 85);
+  --popover-foreground: oklch(0.93 0.04 80);
+  --primary: oklch(0.85 0.07 60);              /* peach takes lead in dark */
+  --primary-foreground: oklch(0.22 0.025 80);
+  --secondary: oklch(0.32 0.03 90);
+  --secondary-foreground: oklch(0.93 0.04 80);
+  --muted: oklch(0.32 0.03 90);
+  --muted-foreground: oklch(0.7 0.04 75);
+  --accent: oklch(0.42 0.04 90);
+  --accent-foreground: oklch(0.93 0.04 80);
+  --destructive: oklch(0.55 0.15 30);
+  --destructive-foreground: oklch(0.93 0.04 80);
+  --border: oklch(0.93 0.04 80 / 12%);
+  --input: oklch(0.93 0.04 80 / 16%);
+  --ring: oklch(0.74 0.08 45);                 /* dusty rose focus */
+  --sidebar: oklch(0.27 0.03 85);
+  --sidebar-foreground: oklch(0.93 0.04 80);
+  --sidebar-primary: oklch(0.74 0.08 45);
+  --sidebar-primary-foreground: oklch(0.22 0.025 80);
+  --sidebar-accent: oklch(0.34 0.04 95);
+  --sidebar-accent-foreground: oklch(0.93 0.04 80);
+  --sidebar-border: oklch(0.93 0.04 80 / 10%);
+  --sidebar-ring: oklch(0.58 0.06 100);
+  --surface: oklch(0.27 0.03 85);
+  --surface-foreground: oklch(0.7 0.04 75);
+  --code-highlight: oklch(0.34 0.04 95);
+  --code-number: oklch(0.74 0.05 80);
+  --selection: oklch(0.85 0.07 60);
+  --selection-foreground: oklch(0.22 0.025 80);
+}
+
+/* ── Semantic element styles ──────────────────────────────────────────── */
+html, body {
+  font-family: var(--font-sans);
+  font-feature-settings: "rlig" 1, "calt" 1;
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1 { font-family: var(--font-heading); font-size: var(--text-4xl); line-height: 1.1;  font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-family: var(--font-heading); font-size: var(--text-3xl); line-height: 1.15; font-weight: 600; letter-spacing: -0.02em; }
+h3 { font-family: var(--font-heading); font-size: var(--text-2xl); line-height: 1.2;  font-weight: 600; letter-spacing: -0.01em; }
+h4 { font-family: var(--font-heading); font-size: var(--text-xl);  line-height: 1.3;  font-weight: 600; }
+h5 { font-family: var(--font-heading); font-size: var(--text-lg);  line-height: 1.4;  font-weight: 600; }
+h6 { font-family: var(--font-heading); font-size: var(--text-base);line-height: 1.5;  font-weight: 600; }
+
+p          { font-size: var(--text-sm); line-height: var(--text-sm-lh); }
+small      { font-size: var(--text-xs); color: var(--muted-foreground); }
+.lead      { font-size: var(--text-lg); color: var(--muted-foreground); line-height: 1.55; }
+.muted     { color: var(--muted-foreground); }
+code, pre, kbd, samp { font-family: var(--font-mono); font-size: 0.9em; }
+code       { background: var(--muted); padding: 0.1em 0.35em; border-radius: var(--radius-sm); }
+kbd        { background: var(--background); border: 1px solid var(--border); border-bottom-width: 2px; padding: 0.05em 0.4em; border-radius: var(--radius-sm); font-size: 0.8em; }
+::selection { background: var(--selection); color: var(--selection-foreground); }
